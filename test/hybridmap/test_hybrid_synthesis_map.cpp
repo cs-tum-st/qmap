@@ -81,10 +81,10 @@ TEST_P(TestParametrizedHybridSynthesisMapper, EvaluateSynthesisStep) {
 
 INSTANTIATE_TEST_SUITE_P(
     HybridSynthesisMapperTestSuite, TestParametrizedHybridSynthesisMapper,
-    ::testing::Values(TestParams{"rubidium", false, false},
-                      TestParams{"rubidium", true, false},
-                      TestParams{"rubidium", false, true},
-                      TestParams{"rubidium", true, true},
+    ::testing::Values(TestParams{"rubidium_gate", false, false},
+                      TestParams{"rubidium_gate", true, false},
+                      TestParams{"rubidium_gate", false, true},
+                      TestParams{"rubidium_gate", true, true},
                       TestParams{"rubidium_hybrid", false, false},
                       TestParams{"rubidium_hybrid", true, false},
                       TestParams{"rubidium_hybrid", false, true},
