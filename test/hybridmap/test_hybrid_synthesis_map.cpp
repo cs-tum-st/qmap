@@ -25,14 +25,21 @@
 #include <vector>
 
 namespace na {
+
+struct TestParams {
+  std::string architecture;
+  bool completeRemap;
+  bool alsoMap;
+};
+
 class TestParametrizedHybridSynthesisMapper
-    : public testing::TestWithParam<std::string> {
+    : public testing::TestWithParam<TestParams> {
 protected:
   std::string testArchitecturePath = "architectures/";
   std::vector<qc::QuantumComputation> circuits;
 
   void SetUp() override {
-    testArchitecturePath += GetParam() + ".json";
+    testArchitecturePath += GetParam().architecture + ".json";
     qc::QuantumComputation qc1(3);
     qc1.x(0);
     qc1.cx(0, 1);
@@ -73,10 +80,20 @@ TEST_P(TestParametrizedHybridSynthesisMapper, EvaluateSynthesisStep) {
   EXPECT_GE(best[1], 0);
 }
 
-INSTANTIATE_TEST_SUITE_P(HybridSynthesisMapperTestSuite,
-                         TestParametrizedHybridSynthesisMapper,
-                         ::testing::Values("rubidium_gate", "rubidium_hybrid",
-                                           "rubidium_shuttling"));
+INSTANTIATE_TEST_SUITE_P(
+    HybridSynthesisMapperTestSuite, TestParametrizedHybridSynthesisMapper,
+    ::testing::Values(TestParams{"rubidium_gate", false, false},
+                      TestParams{"rubidium_gate", true, false},
+                      TestParams{"rubidium_gate", false, true},
+                      TestParams{"rubidium_gate", true, true},
+                      TestParams{"rubidium_hybrid", false, false},
+                      TestParams{"rubidium_hybrid", true, false},
+                      TestParams{"rubidium_hybrid", false, true},
+                      TestParams{"rubidium_hybrid", true, true},
+                      TestParams{"rubidium_shuttling", false, false},
+                      TestParams{"rubidium_shuttling", true, false},
+                      TestParams{"rubidium_shuttling", false, true},
+                      TestParams{"rubidium_shuttling", true, true}));
 
 class TestHybridSynthesisMapper : public testing::Test {
 protected:
@@ -109,7 +126,6 @@ TEST_F(TestHybridSynthesisMapper, completelyRemap) {
   EXPECT_EQ(mappedQc.getNqubitsWithoutAncillae(), arch.getNpositions());
   EXPECT_GE(mappedQc.getNops(), 3);
 
-  mapper.completeRemap(Identity);
   const auto mappedQcRemapped = mapper.getMappedQc();
   EXPECT_EQ(mappedQcRemapped.getNqubitsWithoutAncillae(), arch.getNpositions());
   EXPECT_GE(mappedQcRemapped.getNops(), 3);
@@ -123,7 +139,7 @@ TEST_F(TestHybridSynthesisMapper, MapAppend) {
 }
 
 TEST_F(TestHybridSynthesisMapper, Output) {
-  mapper.appendWithMapping(qc);
+  mapper.appendWithMapping(qc, true);
   const auto qasm = mapper.getSynthesizedQcQASM();
   EXPECT_FALSE(qasm.empty());
   const auto tempDir = std::filesystem::temp_directory_path();

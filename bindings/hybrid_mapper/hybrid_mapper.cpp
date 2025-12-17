@@ -277,12 +277,13 @@ PYBIND11_MODULE(MQT_QMAP_MODULE_NAME, m, py::mod_gil_not_used()) {
           "qc"_a)
       .def(
           "append_with_mapping",
-          [](na::HybridSynthesisMapper& mapper, qc::QuantumComputation& qc) {
-            mapper.appendWithMapping(qc);
+          [](na::HybridSynthesisMapper& mapper, qc::QuantumComputation& qc,
+             bool completeRemap) {
+            mapper.appendWithMapping(qc, completeRemap);
           },
           "Appends the given QuantumComputation to the synthesized "
           "QuantumComputation and maps the gates to the hardware.",
-          "qc"_a)
+          "qc"_a, "complete_remap"_a = false)
       .def(
           "get_circuit_adjacency_matrix",
           [](const na::HybridSynthesisMapper& mapper) {
@@ -301,15 +302,15 @@ PYBIND11_MODULE(MQT_QMAP_MODULE_NAME, m, py::mod_gil_not_used()) {
       .def(
           "evaluate_synthesis_steps",
           [](na::HybridSynthesisMapper& mapper,
-             std::vector<qc::QuantumComputation>& qcs, bool alsoMap) {
-            return mapper.evaluateSynthesisSteps(qcs, alsoMap);
+             std::vector<qc::QuantumComputation>& qcs, bool completeRemap,
+             bool alsoMap) {
+            return mapper.evaluateSynthesisSteps(qcs, completeRemap, alsoMap);
           },
           "Evaluates the synthesis steps proposed by the ZX extraction. "
           "Returns a list of fidelities of the mapped synthesis steps.",
-          "synthesis_steps"_a, "also_map"_a = false)
+          "synthesis_steps"_a, "complete_remap"_a = false, "also_map"_a = false)
       .def("complete_remap", &na::HybridSynthesisMapper::completeRemap,
-           "Remaps the synthesized QuantumComputation to the hardware.",
-           "initial_mapping"_a = na::InitialMapping::Identity)
+           "Remaps the synthesized QuantumComputation to the hardware.")
       .def(
           "schedule",
           [](na::HybridSynthesisMapper& mapper, const bool verbose,

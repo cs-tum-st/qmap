@@ -44,6 +44,7 @@ class HybridSynthesisMapper : public NeutralAtomMapper {
   using qcs = std::vector<qc::QuantumComputation>;
 
   qc::QuantumComputation synthesizedQc;
+  Mapping originalMapping;
   bool initialized = false;
 
   /**
@@ -51,9 +52,11 @@ class HybridSynthesisMapper : public NeutralAtomMapper {
    * @details Effort considers swaps/shuttling and execution time estimated by
    * the mapper.
    * @param qc Proposed synthesis subcircuit.
+   * @param completeRemap
    * @return Scalar cost/effort score for mapping qc.
    */
-  qc::fp evaluateSynthesisStep(qc::QuantumComputation& qc) const;
+  qc::fp evaluateSynthesisStep(qc::QuantumComputation& qc,
+                               bool completeRemap = false) const;
 
 public:
   // Constructors
@@ -82,15 +85,15 @@ public:
     synthesizedQc = qc::QuantumComputation(nQubits);
     mapping = Mapping(nQubits);
     initialized = true;
+    originalMapping = mapping;
   }
 
   /**
    * @brief Complete a (re-)mapping of the synthesized circuit to hardware.
-   * @param initMapping Initial mapping heuristic (defaults to Identity).
    */
-  void completeRemap(const InitialMapping initMapping = Identity) {
+  void completeRemap() {
     auto qcCopy = synthesizedQc;
-    map(qcCopy, initMapping);
+    map(qcCopy, originalMapping);
   }
 
   /**
@@ -124,10 +127,12 @@ public:
   /**
    * @brief Evaluate candidate synthesis steps and optionally map the best.
    * @param synthesisSteps Vector of candidate subcircuits.
+   * @param completeRemap If true, completely remap before evaluation.
    * @param alsoMap If true, append and map the best candidate.
    * @return List of fidelity scores for mapped steps (order matches input).
    */
   std::vector<qc::fp> evaluateSynthesisSteps(qcs& synthesisSteps,
+                                             bool completeRemap = false,
                                              bool alsoMap = false);
 
   /**
@@ -139,8 +144,10 @@ public:
   /**
    * @brief Append and map a subcircuit to hardware (may insert moves/SWAPs).
    * @param qc Subcircuit to append and map.
+   * @param completeRemap If true, completely remap before appending.
    */
-  void appendWithMapping(qc::QuantumComputation& qc);
+  void appendWithMapping(qc::QuantumComputation& qc,
+                         bool completeRemap = false);
 
   /**
    * @brief Get the current device adjacency (connectivity) matrix.

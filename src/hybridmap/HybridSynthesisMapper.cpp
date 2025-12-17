@@ -28,9 +28,8 @@
 
 namespace na {
 
-std::vector<qc::fp>
-HybridSynthesisMapper::evaluateSynthesisSteps(qcs& synthesisSteps,
-                                              const bool alsoMap) {
+std::vector<qc::fp> HybridSynthesisMapper::evaluateSynthesisSteps(
+    qcs& synthesisSteps, const bool completeRemap, const bool alsoMap) {
   if (synthesisSteps.empty()) {
     return {};
   }
@@ -62,15 +61,26 @@ HybridSynthesisMapper::evaluateSynthesisSteps(qcs& synthesisSteps,
     }
   }
   if (alsoMap && !candidates.empty()) {
-    appendWithMapping(candidates[bestIndex].first);
+    appendWithMapping(candidates[bestIndex].first, completeRemap);
   }
   return fidelities;
 }
 
 qc::fp
-HybridSynthesisMapper::evaluateSynthesisStep(qc::QuantumComputation& qc) const {
+HybridSynthesisMapper::evaluateSynthesisStep(qc::QuantumComputation& qc,
+                                             const bool completeRemap) const {
   NeutralAtomMapper tempMapper(arch, parameters);
-  tempMapper.copyStateFrom(*this);
+  if (!completeRemap) {
+    tempMapper.copyStateFrom(*this);
+  } else {
+    qc.reverse();
+    for (auto opPointer = synthesizedQc.rbegin();
+         opPointer != synthesizedQc.rend(); ++opPointer) {
+      qc.emplace_back((*opPointer)->clone());
+    }
+    qc.reverse();
+  }
+
   // Make a copy of qc to avoid modifying the original
   auto qcCopy = qc;
   auto mappedQc = tempMapper.map(qcCopy, mapping);
@@ -90,13 +100,18 @@ void HybridSynthesisMapper::appendWithoutMapping(
   }
 }
 
-void HybridSynthesisMapper::appendWithMapping(qc::QuantumComputation& qc) {
+void HybridSynthesisMapper::appendWithMapping(qc::QuantumComputation& qc,
+                                              const bool completeRemap) {
   if (mappedQc.empty()) {
     initMapping(qc.getNqubits());
   }
-  mapAppend(qc, mapping);
   for (const auto& op : qc) {
     synthesizedQc.emplace_back(op->clone());
+  }
+  if (completeRemap) {
+    this->completeRemap();
+  } else {
+    mapAppend(qc, this->mapping);
   }
 }
 
