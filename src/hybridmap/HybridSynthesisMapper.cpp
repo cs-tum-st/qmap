@@ -75,14 +75,14 @@ HybridSynthesisMapper::evaluateSynthesisStep(qc::QuantumComputation& qc,
     tempMapper.copyStateFrom(*this);
   }
 
-  qc.reverse();
+  auto qcCopy = qc;
+  qcCopy.reverse();
   // insert buffered operations
   for (const auto& opPointer : std::ranges::reverse_view(bufferedQc)) {
-    qc.emplace_back(opPointer->clone());
+    qcCopy.emplace_back(opPointer->clone());
   }
 
   // Make a copy of qc to avoid modifying the original
-  auto qcCopy = qc;
   auto mappedQc = tempMapper.map(qcCopy, mapping);
   tempMapper.convertToAod();
   const auto results = tempMapper.schedule();
