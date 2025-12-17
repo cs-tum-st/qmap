@@ -109,7 +109,7 @@ void HybridSynthesisMapper::appendWithMapping(qc::QuantumComputation& qc,
     }
     // remove the operations from the buffer
     bufferedQc.erase(bufferedQc.begin(),
-                     bufferedQc.end() - static_cast<long>(bufferSize));
+                     bufferedQc.end() - static_cast<int64_t>(bufferSize));
   }
 
   if (completeRemap) {
