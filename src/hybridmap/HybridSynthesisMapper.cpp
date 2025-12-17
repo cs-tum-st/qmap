@@ -20,6 +20,7 @@
 #include "ir/QuantumComputation.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <ranges>
 #include <spdlog/spdlog.h>
 #include <stdexcept>
