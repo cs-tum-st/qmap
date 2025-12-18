@@ -38,7 +38,8 @@ protected:
   std::vector<qc::QuantumComputation> circuits;
 
   /**
-   * @brief Prepare test fixtures for parametrized hybrid synthesis mapper tests.
+   * @brief Prepare test fixtures for parametrized hybrid synthesis mapper
+   * tests.
    *
    * Appends the architecture name from the test parameter plus ".json" to
    * testArchitecturePath and constructs two 3-qubit quantum circuits, which
@@ -111,10 +112,12 @@ protected:
   qc::QuantumComputation qc;
 
   /**
-   * @brief Prepare a 3-qubit test circuit and initialize the mapper's mapping for three qubits.
+   * @brief Prepare a 3-qubit test circuit and initialize the mapper's mapping
+   * for three qubits.
    *
-   * The circuit applies an X gate on qubit 0 followed by controlled-X gates from qubit 0 to 1 and from qubit 1 to 2,
-   * and the mapper is initialized to a mapping for three qubits.
+   * The circuit applies an X gate on qubit 0 followed by controlled-X gates
+   * from qubit 0 to 1 and from qubit 1 to 2, and the mapper is initialized to a
+   * mapping for three qubits.
    */
   void SetUp() override {
     qc = qc::QuantumComputation(3);

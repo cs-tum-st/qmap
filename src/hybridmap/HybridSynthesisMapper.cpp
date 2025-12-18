@@ -30,12 +30,17 @@
 namespace na {
 
 /**
- * @brief Evaluates a set of synthesis candidate circuits and optionally applies the best candidate to the mapper.
+ * @brief Evaluates a set of synthesis candidate circuits and optionally applies
+ * the best candidate to the mapper.
  *
- * @param synthesisSteps Vector of candidate QuantumComputation objects to evaluate.
- * @param completeRemap If `true`, use a full remapping when applying the selected candidate; if `false`, update mapping incrementally.
- * @param alsoMap If `true`, append and map the highest-fidelity candidate into the internal mapped/buffered circuit state.
- * @return std::vector<qc::fp> A vector of fidelities where each element is the total fidelity computed for the corresponding entry in `synthesisSteps`.
+ * @param synthesisSteps Vector of candidate QuantumComputation objects to
+ * evaluate.
+ * @param completeRemap If `true`, use a full remapping when applying the
+ * selected candidate; if `false`, update mapping incrementally.
+ * @param alsoMap If `true`, append and map the highest-fidelity candidate into
+ * the internal mapped/buffered circuit state.
+ * @return std::vector<qc::fp> A vector of fidelities where each element is the
+ * total fidelity computed for the corresponding entry in `synthesisSteps`.
  */
 std::vector<qc::fp> HybridSynthesisMapper::evaluateSynthesisSteps(
     qcs& synthesisSteps, const bool completeRemap, const bool alsoMap) {
@@ -76,10 +81,12 @@ std::vector<qc::fp> HybridSynthesisMapper::evaluateSynthesisSteps(
 }
 
 /**
- * @brief Evaluates the fidelity of mapping a synthesis step while accounting for buffered operations.
+ * @brief Evaluates the fidelity of mapping a synthesis step while accounting
+ * for buffered operations.
  *
  * @param qc Quantum computation to evaluate; the input is not modified.
- * @param completeRemap If `false`, preserve the mapper's current state when evaluating the step; if `true`, evaluate using a fresh mapping.
+ * @param completeRemap If `false`, preserve the mapper's current state when
+ * evaluating the step; if `true`, evaluate using a fresh mapping.
  * @return qc::fp Total fidelity computed for the mapped and scheduled circuit.
  */
 qc::fp
@@ -153,7 +160,8 @@ void HybridSynthesisMapper::appendWithMapping(qc::QuantumComputation& qc,
 }
 
 /**
- * Compute the circuit adjacency matrix using the current logical-to-hardware mapping.
+ * Compute the circuit adjacency matrix using the current logical-to-hardware
+ * mapping.
  *
  * The matrix has size equal to the number of qubits in the synthesized circuit.
  * For circuit qubits i and j, the matrix entry (i, j) is 1 when the hardware
