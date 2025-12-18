@@ -135,6 +135,10 @@ TEST_F(TestHybridSynthesisMapper, MapAppend) {
   const auto synthesizedQc = mapper.getSynthesizedQc();
   EXPECT_EQ(synthesizedQc.getNqubits(), 3);
   EXPECT_GE(synthesizedQc.getNops(), 3);
+  mapper.completeRemap(false);
+  mapper.completeRemap(true);
+  const auto mappedQc = mapper.getMappedQc();
+  EXPECT_GE(mappedQc.getNops(), synthesizedQc.getNops());
 }
 
 TEST_F(TestHybridSynthesisMapper, Output) {
