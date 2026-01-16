@@ -12,6 +12,7 @@
 
 #include "Architecture.hpp"
 #include "code_generator/CodeGenerator.hpp"
+#include "decomposer/NoOpDecomposer.hpp"
 #include "ir/QuantumComputation.hpp"
 #include "ir/operations/Operation.hpp"
 #include "layout_synthesizer/PlaceAndRouteSynthesizer.hpp"
@@ -25,7 +26,6 @@
 #include <cassert>
 #include <chrono>
 #include <functional>
-#include <iostream>
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
@@ -43,9 +43,10 @@ namespace na::zoned {
  * allowing for better performance than having the components as members of the
  * compiler and setting them at runtime.
  */
-template <class ConcreteType, class Scheduler, class ReuseAnalyzer,
-          class LayoutSynthesizer, class CodeGenerator>
+template <class ConcreteType, class Scheduler, class Decomposer,
+          class ReuseAnalyzer, class LayoutSynthesizer, class CodeGenerator>
 class Compiler : protected Scheduler,
+                 protected Decomposer,
                  protected ReuseAnalyzer,
                  protected LayoutSynthesizer,
                  protected CodeGenerator {
@@ -59,6 +60,8 @@ public:
   struct Config {
     /// Configuration for the scheduler
     typename Scheduler::Config schedulerConfig{};
+    /// Configuration for the decomposer
+    typename Decomposer::Config decomposerConfig{};
     /// Configuration for the reuse analyzer
     typename ReuseAnalyzer::Config reuseAnalyzerConfig{};
     /// Configuration for the layout synthesizer
@@ -68,28 +71,29 @@ public:
     /// Log level for the compiler
     spdlog::level::level_enum logLevel = spdlog::level::info;
     NLOHMANN_DEFINE_TYPE_INTRUSIVE_WITH_DEFAULT(Config, schedulerConfig,
+                                                decomposerConfig,
                                                 reuseAnalyzerConfig,
                                                 layoutSynthesizerConfig,
                                                 codeGeneratorConfig, logLevel);
   };
+
   /**
    * Collection of statistics collected during the compilation process for the
    * different components.
    */
   struct Statistics {
     int64_t schedulingTime;    ///< Time taken for scheduling in us
+    int64_t decomposingTime;   ///< Time taken for decomposing in us
     int64_t reuseAnalysisTime; ///< Time taken for reuse analysis in us
     /// Statistics collected during layout synthesis.
     typename LayoutSynthesizer::Statistics layoutSynthesizerStatistics;
     int64_t layoutSynthesisTime; ///< Time taken for layout synthesis in us
     int64_t codeGenerationTime;  ///< Time taken for code generation in us
     int64_t totalTime;           ///< Total time taken for the compilation in us
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE_ONLY_SERIALIZE(Statistics, schedulingTime,
-                                                  reuseAnalysisTime,
-                                                  layoutSynthesizerStatistics,
-                                                  layoutSynthesisTime,
-                                                  codeGenerationTime,
-                                                  totalTime);
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE_ONLY_SERIALIZE(
+        Statistics, schedulingTime, decomposingTime, reuseAnalysisTime,
+        layoutSynthesizerStatistics, layoutSynthesisTime, codeGenerationTime,
+        totalTime);
   };
 
 private:
@@ -106,6 +110,7 @@ private:
    */
   Compiler(const Architecture& architecture, const Config& config)
       : Scheduler(architecture, config.schedulerConfig),
+        Decomposer(architecture, config.decomposerConfig),
         ReuseAnalyzer(architecture, config.reuseAnalyzerConfig),
         LayoutSynthesizer(architecture, config.layoutSynthesizerConfig),
         CodeGenerator(architecture, config.codeGeneratorConfig),
@@ -195,6 +200,17 @@ public:
     }
 #endif // SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_DEBUG
 
+    SPDLOG_DEBUG("Decomposing...");
+    const auto decomposingStart = std::chrono::system_clock::now();
+    const auto& decomposedSingleQubitGateLayers =
+        SELF.decompose(singleQubitGateLayers);
+    const auto decomposingEnd = std::chrono::system_clock::now();
+    statistics_.decomposingTime =
+        std::chrono::duration_cast<std::chrono::microseconds>(decomposingEnd -
+                                                              decomposingStart)
+            .count();
+    SPDLOG_INFO("Time for decomposing: {}us", statistics_.decomposingTime);
+
     SPDLOG_DEBUG("Analyzing reuse...");
     const auto reuseAnalysisStart = std::chrono::system_clock::now();
     const auto& reuseQubits = SELF.analyzeReuse(twoQubitGateLayers);
@@ -222,7 +238,7 @@ public:
     SPDLOG_DEBUG("Generating code...");
     const auto codeGenerationStart = std::chrono::system_clock::now();
     NAComputation code =
-        SELF.generate(singleQubitGateLayers, placement, routing);
+        SELF.generate(decomposedSingleQubitGateLayers, placement, routing);
     const auto codeGenerationEnd = std::chrono::system_clock::now();
     assert(code.validate().first);
     statistics_.codeGenerationTime =
@@ -239,6 +255,7 @@ public:
     SPDLOG_INFO("Total time: {}us", statistics_.totalTime);
     return code;
   }
+
   /// @return the statistics collected during the compilation process.
   [[nodiscard]] auto getStatistics() const -> const Statistics& {
     return statistics_;
@@ -253,17 +270,20 @@ public:
   RoutingAgnosticSynthesizer(const Architecture& architecture,
                              const Config& config)
       : PlaceAndRouteSynthesizer(architecture, config) {}
+
   explicit RoutingAgnosticSynthesizer(const Architecture& architecture)
       : PlaceAndRouteSynthesizer(architecture) {}
 };
+
 class RoutingAgnosticCompiler final
-    : public Compiler<RoutingAgnosticCompiler, ASAPScheduler,
+    : public Compiler<RoutingAgnosticCompiler, ASAPScheduler, NoOpDecomposer,
                       VertexMatchingReuseAnalyzer, RoutingAgnosticSynthesizer,
                       CodeGenerator> {
 public:
   RoutingAgnosticCompiler(const Architecture& architecture,
                           const Config& config)
       : Compiler(architecture, config) {}
+
   explicit RoutingAgnosticCompiler(const Architecture& architecture)
       : Compiler(architecture) {}
 };
@@ -275,16 +295,19 @@ public:
   RoutingAwareSynthesizer(const Architecture& architecture,
                           const Config& config)
       : PlaceAndRouteSynthesizer(architecture, config) {}
+
   explicit RoutingAwareSynthesizer(const Architecture& architecture)
       : PlaceAndRouteSynthesizer(architecture) {}
 };
+
 class RoutingAwareCompiler final
-    : public Compiler<RoutingAwareCompiler, ASAPScheduler,
+    : public Compiler<RoutingAwareCompiler, ASAPScheduler, NoOpDecomposer,
                       VertexMatchingReuseAnalyzer, RoutingAwareSynthesizer,
                       CodeGenerator> {
 public:
   RoutingAwareCompiler(const Architecture& architecture, const Config& config)
       : Compiler(architecture, config) {}
+
   explicit RoutingAwareCompiler(const Architecture& architecture)
       : Compiler(architecture) {}
 };
