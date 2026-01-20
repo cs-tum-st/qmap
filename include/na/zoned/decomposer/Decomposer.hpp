@@ -8,6 +8,14 @@
 namespace na::zoned {
 
   class Decomposer {
+  private:
+    struct struct_U3{
+      std::array<qc::fp,3> angles;
+      int qubit;
+    } ;
+    static inline constexpr qc::fp epsilon=1e-5;
+    int N_qubits;
+
   public:
     /**
      * Converts commonly used single qubit gates into their Quaternion representation
@@ -29,24 +37,33 @@ namespace na::zoned {
      * @param quat is a quaternion representing a single qubit gate
      * @returns an array of three qc::fp values [theta, phi, lambda] giving the U§ gate angles
      */
-    static auto get_U3_angles_from_quaternion(std::array<qc::fp,4> quat) -> std::array<qc::fp,3>;
+    static auto get_U3_angles_from_quaternion(const std::array<qc::fp,4>& quat) -> std::array<qc::fp,3>;
 
     /**
-     * Calculates the largest value of the U3-Gate parameter theta from a vector of Operations.
-     * Fails when provided gates aren't all U3-Gates.
+     * Calculates the largest value of the U3-Gate parameter theta from a vector
+     * of Operations. Fails when provided gates aren't all U3-Gates.
      * @param layer is a SingleQubitGateLayers of a scheduled
+     * @returns the maximal value of theta in the given layer
      */
-    static auto calc_theta_max(const SingleQubitGateLayer& layer)->qc::fp;
+    static auto calc_theta_max(const std::vector<struct_U3>& layer)->qc::fp;
 
     /**
      * Takes a vector of SingleQubitGateLayer's and, for each layer
-     * , transforms all gates into U3 gates
+     * , transforms all gates into U3 gates represented by struct_U3's
      * , combining  all gates acting on the same qubit into a single U3 gate
      * @param layers is a std::vector of SingleQubitGateLayers of a scheduled circuit
+     * @returns a vector of vectors of a struct_U3's representing the single qubit gate layers
      */
     [[nodiscard]] auto transform_to_U3(const std::vector<SingleQubitGateLayer>& layers) const
-        -> std::vector<SingleQubitGateLayer>;
-
+        -> std::vector<std::vector<struct_U3>>;
+    /**
+     * Takes a vector of qc::fp's representing the U3-Gate angles of a single qubit hate and the maximal value of theta
+     * for the single qubit gate layer and calculates the transversal decomposition angles as in Nottingham et. al. 2024
+     * @param angles is a std::array of qc::fp representing (theta,phi, lambda)
+     * @param theta_max the maximal theta value of the single-qubit qate layer
+     * @returns an array of qc::fp values giving the angles (chi, gamma_minus, gamma_plus)
+     */
+    auto static get_decomposition_angles (const std::array<qc::fp,3>& angles,qc::fp theta_max )-> std::array<qc::fp,3>;
     /**
      * Create a new Decomposer.
      * @param n_qubits is the number of qubits in the circuit to be decomposed
@@ -55,16 +72,10 @@ namespace na::zoned {
 
     [[nodiscard]] auto
     decompose(const std::pair<std::vector<SingleQubitGateLayer>,
-                              std::vector<TwoQubitGateLayer>>& schedule)
+                              std::vector<TwoQubitGateLayer>>& schedule) const
         -> std::pair<std::vector<SingleQubitGateLayer>,
                      std::vector<TwoQubitGateLayer>>;
-    private:
-    struct {
-      std::array<qc::fp,3> angles;
-      int qubit;
-    } struct_U3;
 
-      int N_qubits;
 
   };
 
