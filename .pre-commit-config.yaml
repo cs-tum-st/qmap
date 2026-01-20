@@ -11,7 +11,7 @@ ci:
   autoupdate_commit_msg: "⬆️🪝 update pre-commit hooks"
   autofix_commit_msg: "🎨 pre-commit fixes"
   autoupdate_schedule: quarterly
-  skip: [mypy]
+  skip: [ty-check]
 
 repos:
   # Standard hooks
@@ -66,13 +66,13 @@ repos:
 
   # Ensure uv lock file is up-to-date
   - repo: https://github.com/astral-sh/uv-pre-commit
-    rev: 0.9.16
+    rev: 0.9.26
     hooks:
       - id: uv-lock
 
   # Python linting using ruff
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.8
+    rev: v0.14.13
     hooks:
       - id: ruff-check
       - id: ruff-format
@@ -84,30 +84,26 @@ repos:
       - id: blacken-docs
         additional_dependencies: [black==25.*]
 
-  # Check static types with mypy
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.0
+  ## Static type checking using ty
+  - repo: local
     hooks:
-      - id: mypy
-        files: ^(src/mqt|test/python|noxfile.py)
-        args: []
-        additional_dependencies:
-          - nox
-          - numpy
-          - pytest
-          - rustworkx
-          - mqt.qcec
-          - mqt.core>=3.2.1
+      - id: ty-check
+        name: ty check
+        entry: uvx python -c "import subprocess; import sys; r = subprocess.run(['uv', 'sync', '--no-install-project', '--inexact']); sys.exit(r.returncode or subprocess.run(['uv', 'run', '--no-sync', 'ty', 'check']).returncode)"
+        language: unsupported
+        require_serial: true
+        types_or: [python, pyi, jupyter]
+        exclude: ^(docs/|eval/)
 
   # Check for spelling
-  - repo: https://github.com/crate-ci/typos
-    rev: v1.40.0
+  - repo: https://github.com/adhtruong/mirrors-typos
+    rev: v1.42.0
     hooks:
       - id: typos
 
   # Clang-format the C++ part of the code base automatically
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v21.1.7
+    rev: v21.1.8
     hooks:
       - id: clang-format
         types_or: [c++, c, cuda]
@@ -123,7 +119,7 @@ repos:
 
   # Format configuration files with prettier
   - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.7.4
+    rev: v3.8.0
     hooks:
       - id: prettier
         types_or: [yaml, markdown, html, css, scss, javascript, json]
@@ -134,7 +130,7 @@ repos:
       - id: disallow-caps
         name: Disallow improper capitalization
         language: pygrep
-        entry: PyBind|Numpy|Cmake|CCache|Github|PyTest|Mqt|Tum
+        entry: Nanobind|Numpy|Cmake|CCache|Github|PyTest|Mqt|Tum
         exclude: .pre-commit-config.yaml
 
   # Check best practices for scientific Python code
@@ -146,7 +142,7 @@ repos:
 
   # Check JSON schemata
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.35.0
+    rev: 0.36.0
     hooks:
       - id: check-dependabot
       - id: check-github-workflows
@@ -154,7 +150,7 @@ repos:
 
   # Check the pyproject.toml file
   - repo: https://github.com/henryiii/validate-pyproject-schema-store
-    rev: 2025.11.21
+    rev: 2026.01.10
     hooks:
       - id: validate-pyproject
 

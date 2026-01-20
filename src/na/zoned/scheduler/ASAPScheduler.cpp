@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2023 - 2025 Chair for Design Automation, TUM
- * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * Copyright (c) 2023 - 2026 Chair for Design Automation, TUM
+ * Copyright (c) 2025 - 2026 Munich Quantum Software Company GmbH
  * All rights reserved.
  *
  * SPDX-License-Identifier: MIT
@@ -53,14 +53,14 @@ ASAPScheduler::ASAPScheduler(const Architecture& architecture,
   }
 }
 auto ASAPScheduler::schedule(const qc::QuantumComputation& qc) const
-    -> std::pair<std::vector<SingleQubitGateLayer>,
+    -> std::pair<std::vector<SingleQubitGateRefLayer>,
                  std::vector<TwoQubitGateLayer>> {
   if (qc.empty()) {
     // early exit if there are no operations to schedule
-    return std::pair{std::vector<SingleQubitGateLayer>{},
+    return std::pair{std::vector<SingleQubitGateRefLayer>{},
                      std::vector<TwoQubitGateLayer>{}};
   }
-  std::vector<SingleQubitGateLayer> singleQubitGateLayers(1);
+  std::vector<SingleQubitGateRefLayer> singleQubitGateLayers(1);
   std::vector<TwoQubitGateLayer> twoQubitGateLayers(0);
   // the following vector contains a mapping from qubits to the layer where
   // the next two-qubit gate can be scheduled for that qubit, i.e., the layer

@@ -1,5 +1,5 @@
-# Copyright (c) 2023 - 2025 Chair for Design Automation, TUM
-# Copyright (c) 2025 Munich Quantum Software Company GmbH
+# Copyright (c) 2023 - 2026 Chair for Design Automation, TUM
+# Copyright (c) 2025 - 2026 Munich Quantum Software Company GmbH
 # All rights reserved.
 #
 # SPDX-License-Identifier: MIT
@@ -74,7 +74,6 @@ def test_hybrid_synthesis_input_output(arch_filename: str, tmp_path: Path) -> No
     synthesis_mapper.init_mapping(3)
 
     synthesis_mapper.append_with_mapping(qc1)
-    synthesis_mapper.append_without_mapping(qc2)
 
     qasm = synthesis_mapper.get_mapped_qc_qasm()
     assert qasm is not None

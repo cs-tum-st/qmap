@@ -1,5 +1,5 @@
-# Copyright (c) 2023 - 2025 Chair for Design Automation, TUM
-# Copyright (c) 2025 Munich Quantum Software Company GmbH
+# Copyright (c) 2023 - 2026 Chair for Design Automation, TUM
+# Copyright (c) 2025 - 2026 Munich Quantum Software Company GmbH
 # All rights reserved.
 #
 # SPDX-License-Identifier: MIT
@@ -52,10 +52,10 @@ def _import_tableau(tableau: str | Clifford | PauliList | Tableau, include_desta
         except AttributeError:
             if include_destabilizers:
                 return Tableau(
-                    str(_reverse_paulis(tableau.stabilizer.to_labels())),
-                    str(_reverse_paulis(tableau.destabilizer.to_labels())),
+                    str(_reverse_paulis(tableau.stab.to_labels())),
+                    str(_reverse_paulis(tableau.destab.to_labels())),
                 )
-            return Tableau(str(_reverse_paulis(tableau.stabilizer.to_labels())))
+            return Tableau(str(_reverse_paulis(tableau.stab.to_labels())))
     elif isinstance(tableau, PauliList):
         return Tableau(str(_reverse_paulis(tableau.to_labels())))
     elif isinstance(tableau, str):

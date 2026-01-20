@@ -11,12 +11,39 @@ This project adheres to [Semantic Versioning], with the exception that minor rel
 
 _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#unreleased)._
 
+### Added
+
+- ✨ Add a (no-op) decomposer component to the zoned neutral atom compiler ([#902]) ([**@ystade**])
+
 ### Changed
 
+- 🔧 Replace `mypy` with `ty` ([#912]) ([**@denialhaag**])
+- ♻️ Migrate Python bindings from `pybind11` to `nanobind` ([#911]) ([**@denialhaag**])
+- 📦️ Provide Stable ABI wheels for Python 3.12+ ([#911]) ([**@denialhaag**])
+
+## [3.5.0] - 2025-12-16
+
+_If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#350)._
+
+### Added
+
+- ✨ Add iterative diving search as a more efficient placement heuristic method ([#862]) ([**@ystade**])
+- ✨ Add relaxed routing method to the zoned neutral atom compiler ([#859]) ([**@ystade**])
+
+### Changed
+
+- 👷 Stop testing on `ubuntu-22.04` and `ubuntu-22.04-arm` runners ([#874]) ([**@denialhaag**])
+- 👷 Stop testing with `clang-19` and start testing with `clang-21` ([#874]) ([**@denialhaag**])
+- 👷 Fix macOS tests with Homebrew Clang via new `munich-quantum-toolkit/workflows` version ([#874]) ([**@denialhaag**])
+- 👷 Re-enable macOS tests with GCC by disabling module scanning ([#874]) ([**@denialhaag**])
 - ✨ Enable code generation for relaxed routing constraints ([#848]) ([**@ystade**])
 - ✨ Add `max_filling_factor` to scheduler in Zoned Neutral Atom Compiler ([#847]) ([**@ystade**])
 - ✨ Added extension to the hybrid routing mapper to also support Bridge gates, Passby moves and Flying ancillas ([#832]) ([**@lsschmid**])
 - ✨ Added hybrid synthesis routing for iterative circuit constructions ([#832]) ([**@lsschmid**])
+
+### Removed
+
+- 🔥 Remove wheel builds for Python 3.13t ([#874]) ([**@denialhaag**])
 
 ## [3.4.0] - 2025-10-15
 
@@ -146,7 +173,8 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- Version links -->
 
-[unreleased]: https://github.com/munich-quantum-toolkit/qmap/compare/v3.4.0...HEAD
+[unreleased]: https://github.com/munich-quantum-toolkit/qmap/compare/v3.5.0...HEAD
+[3.5.0]: https://github.com/munich-quantum-toolkit/qmap/releases/tag/v3.5.0
 [3.4.0]: https://github.com/munich-quantum-toolkit/qmap/releases/tag/v3.4.0
 [3.3.1]: https://github.com/munich-quantum-toolkit/qmap/releases/tag/v3.3.1
 [3.3.0]: https://github.com/munich-quantum-toolkit/qmap/releases/tag/v3.3.0
@@ -160,6 +188,12 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- PR links -->
 
+[#912]: https://github.com/munich-quantum-toolkit/qmap/pull/912
+[#911]: https://github.com/munich-quantum-toolkit/qmap/pull/911
+[#902]: https://github.com/munich-quantum-toolkit/qmap/pull/902
+[#874]: https://github.com/munich-quantum-toolkit/qmap/pull/874
+[#862]: https://github.com/munich-quantum-toolkit/qmap/pull/862
+[#859]: https://github.com/munich-quantum-toolkit/qmap/pull/859
 [#848]: https://github.com/munich-quantum-toolkit/qmap/pull/848
 [#847]: https://github.com/munich-quantum-toolkit/qmap/pull/847
 [#832]: https://github.com/munich-quantum-toolkit/qmap/pull/832

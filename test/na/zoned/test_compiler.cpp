@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2023 - 2025 Chair for Design Automation, TUM
- * Copyright (c) 2025 Munich Quantum Software Company GmbH
+ * Copyright (c) 2023 - 2026 Chair for Design Automation, TUM
+ * Copyright (c) 2025 - 2026 Munich Quantum Software Company GmbH
  * All rights reserved.
  *
  * SPDX-License-Identifier: MIT
@@ -39,20 +39,23 @@ constexpr std::string_view architectureSpecification = R"({
   "aods":[{"id": 0, "site_separation": 2, "r": 20, "c": 20}],
   "rydberg_range": [[[5, 70], [55, 110]]]
 })";
-constexpr std::string_view routingAgnosticConfiguration = R"({
+constexpr std::string_view strictRoutingAgnosticConfiguration = R"({
   "logLevel" : 1,
   "layoutSynthesizerConfig" : {
     "placerConfig" : {
       "useWindow" : true,
       "windowSize" : 10,
       "dynamicPlacement" : true
+    },
+    "routerConfig" : {
+      "method" : "strict"
     }
   },
   "codeGeneratorConfig" : {
     "warnUnsupportedGates" : false
   }
 })";
-constexpr std::string_view routingAwareConfiguration = R"({
+constexpr std::string_view strictRoutingAwareConfiguration = R"({
   "logLevel" : 1,
   "codeGeneratorConfig" : {
     "warnUnsupportedGates" : false
@@ -63,28 +66,78 @@ constexpr std::string_view routingAwareConfiguration = R"({
       "windowMinWidth" : 4,
       "windowRatio" : 1.5,
       "windowShare" : 0.6,
+      "method" : "astar",
       "deepeningFactor" : 0.6,
       "deepeningValue" : 0.2,
       "lookaheadFactor": 0.2,
       "reuseLevel": 5.0
+    },
+    "routerConfig" : {
+      "method" : "strict"
     }
   }
 })";
-#define COMPILER_TEST(compiler_type, config)                                   \
-  TEST(compiler_type##Test, ConstructorWithoutConfig) {                        \
+constexpr std::string_view relaxedRoutingAwareConfiguration = R"({
+  "logLevel" : 1,
+  "codeGeneratorConfig" : {
+    "warnUnsupportedGates" : false
+  },
+  "layoutSynthesizerConfig" : {
+    "placerConfig" : {
+      "useWindow" : true,
+      "windowMinWidth" : 4,
+      "windowRatio" : 1.5,
+      "windowShare" : 0.6,
+      "method" : "astar",
+      "deepeningFactor" : 0.6,
+      "deepeningValue" : 0.2,
+      "lookaheadFactor": 0.2,
+      "reuseLevel": 5.0
+    },
+    "routerConfig" : {
+      "method" : "relaxed",
+      "preferSplit" : 0.0
+    }
+  }
+})";
+constexpr std::string_view fastRelaxedRoutingAwareConfiguration = R"({
+  "logLevel" : 1,
+  "codeGeneratorConfig" : {
+    "warnUnsupportedGates" : false
+  },
+  "layoutSynthesizerConfig" : {
+    "placerConfig" : {
+      "useWindow" : true,
+      "windowMinWidth" : 4,
+      "windowRatio" : 1.5,
+      "windowShare" : 0.6,
+      "method" : "ids",
+      "deepeningFactor" : 0.01,
+      "deepeningValue" : 0.0,
+      "lookaheadFactor": 0.4,
+      "reuseLevel": 5.0
+    },
+    "routerConfig" : {
+      "method" : "relaxed",
+      "preferSplit" : 0.0
+    }
+  }
+})";
+#define COMPILER_TEST(test_name, compiler_type, config)                        \
+  TEST(test_name##Test, ConstructorWithoutConfig) {                            \
     Architecture architecture(                                                 \
         Architecture::fromJSONString(architectureSpecification));              \
     /* expected not to lead to a segfault */                                   \
     [[maybe_unused]] compiler_type compiler(architecture);                     \
   }                                                                            \
-  class compiler_type##Test : public ::testing::TestWithParam<std::string> {   \
+  class test_name##Test : public ::testing::TestWithParam<std::string> {       \
     compiler_type::Config config_;                                             \
     Architecture architecture_;                                                \
                                                                                \
   protected:                                                                   \
     qc::QuantumComputation circ_;                                              \
     compiler_type compiler_;                                                   \
-    compiler_type##Test()                                                      \
+    test_name##Test()                                                          \
         : config_(nlohmann::json::parse(config)),                              \
           architecture_(                                                       \
               Architecture::fromJSONString(architectureSpecification)),        \
@@ -92,14 +145,14 @@ constexpr std::string_view routingAwareConfiguration = R"({
     void SetUp() override { circ_ = qasm3::Importer::importf(GetParam()); }    \
   };                                                                           \
   /*=========================== END TO END TESTS ===========================*/ \
-  TEST_P(compiler_type##Test, EndToEnd) {                                      \
+  TEST_P(test_name##Test, EndToEnd) {                                          \
     const auto& code = this->compiler_.compile(this->circ_);                   \
     EXPECT_TRUE(code.validate().first);                                        \
     /*===----------------------------------------------------------------===*/ \
     /* write code to a file with extension .naviz in a directory converted */  \
     std::filesystem::path inputFile(GetParam());                               \
     std::filesystem::path outputFile = inputFile.parent_path() / "converted" / \
-                                       #compiler_type /                        \
+                                       #test_name /                            \
                                        (inputFile.stem().string() + ".naviz"); \
     std::filesystem::create_directories(outputFile.parent_path());             \
     std::ofstream output(outputFile);                                          \
@@ -116,17 +169,22 @@ constexpr std::string_view routingAwareConfiguration = R"({
   }                                                                            \
   /*========================================================================*/ \
   INSTANTIATE_TEST_SUITE_P(                                                    \
-      compiler_type##TestWithCircuits,  /* Custom instantiation name */        \
-      compiler_type##Test,              /* Test suite name */                  \
+      test_name##TestWithCircuits,      /* Custom instantiation name */        \
+      test_name##Test,                  /* Test suite name */                  \
       ::testing::Values(TEST_CIRCUITS), /* Parameters to test with */          \
       [](const ::testing::TestParamInfo<std::string>& pinfo) {                 \
-        const auto& path = pinfo.param;                                        \
-        const auto& filename = path.substr(path.find_last_of("/") + 1);        \
-        return filename.substr(0, filename.find_last_of("."));                 \
+        const std::filesystem::path path(pinfo.param);                         \
+        return path.stem().string();                                           \
       })
 /*============================== INSTANTIATIONS ==============================*/
-COMPILER_TEST(RoutingAgnosticCompiler, routingAgnosticConfiguration);
-COMPILER_TEST(RoutingAwareCompiler, routingAwareConfiguration);
+COMPILER_TEST(StrictRoutingAgnosticCompiler, RoutingAgnosticCompiler,
+              strictRoutingAgnosticConfiguration);
+COMPILER_TEST(StrictRoutingAwareCompiler, RoutingAwareCompiler,
+              strictRoutingAwareConfiguration);
+COMPILER_TEST(RelaxedRoutingAwareCompiler, RoutingAwareCompiler,
+              relaxedRoutingAwareConfiguration);
+COMPILER_TEST(FastRelaxedRoutingAwareCompiler, RoutingAwareCompiler,
+              fastRelaxedRoutingAwareConfiguration);
 
 // Tests that the bug described in issue
 // https://github.com/munich-quantum-toolkit/qmap/issues/727 is fixed.
@@ -292,6 +350,140 @@ TEST(RoutingAwareCompilerTest, Issue792) {
   const auto qc = qasm3::Importer::imports(circuit792.data());
   const auto arch = Architecture::fromJSONString(architectureSpecification792);
   const auto config = nlohmann::json::parse(routingAwareConfiguration792);
+  RoutingAwareCompiler compiler(arch, config);
+  EXPECT_NO_THROW(std::ignore = compiler.compile(qc));
+}
+
+constexpr std::string_view architectureSpecificationGraphstate = R"({
+  "name": "full_compute_store_architecture",
+  "operation_duration": {
+    "rydberg_gate": 0.36,
+    "single_qubit_gate": 52,
+    "atom_transfer": 15
+  },
+  "operation_fidelity": {
+    "rydberg_gate": 0.995,
+    "single_qubit_gate": 0.9997,
+    "atom_transfer": 0.999
+  },
+  "qubit_spec": {
+    "T": 1.5e6
+  },
+  "storage_zones": [
+    {
+      "zone_id": 0,
+      "slms": [
+        {
+          "id": 0,
+          "site_separation": [3, 3],
+          "r": 20,
+          "c": 100,
+          "location": [0, 0]
+        }
+      ],
+      "offset": [0, 0],
+      "dimension": [297, 57]
+    }
+  ],
+  "entanglement_zones": [
+    {
+      "zone_id": 0,
+      "slms": [
+        {
+          "id": 1,
+          "site_separation": [12, 10],
+          "r": 7,
+          "c": 20,
+          "location": [35, 67]
+        },
+        {
+          "id": 2,
+          "site_separation": [12, 10],
+          "r": 7,
+          "c": 20,
+          "location": [37, 67]
+        }
+      ],
+      "offset": [35, 67],
+      "dimension": [230, 60]
+    }
+  ],
+  "aods": [
+    {
+      "id": 0,
+      "site_separation": 2,
+      "r": 100,
+      "c": 100
+    }
+  ],
+  "arch_range": [
+    [0, 0],
+    [297, 162]
+  ],
+  "rydberg_range": [
+    [
+      [30, 62],
+      [270, 132]
+    ]
+  ]
+})";
+
+constexpr std::string_view circuitGraphstate = R"(OPENQASM 3.0;
+include "stdgates.inc";
+qubit[20] q;
+bit[20] c;
+h q[0];
+h q[1];
+h q[2];
+h q[3];
+h q[4];
+h q[5];
+h q[6];
+cz q[1], q[6];
+cz q[4], q[6];
+h q[7];
+h q[8];
+cz q[2], q[8];
+h q[9];
+cz q[2], q[9];
+h q[10];
+cz q[3], q[10];
+h q[11];
+cz q[5], q[11];
+h q[12];
+cz q[8], q[12];
+h q[13];
+cz q[0], q[13];
+cz q[4], q[13];
+h q[14];
+cz q[0], q[14];
+cz q[5], q[14];
+h q[15];
+cz q[1], q[15];
+h q[16];
+cz q[10], q[16];
+cz q[15], q[16];
+h q[17];
+cz q[3], q[17];
+cz q[9], q[17];
+h q[18];
+cz q[7], q[18];
+cz q[11], q[18];
+h q[19];
+cz q[7], q[19];
+cz q[12], q[19];)";
+
+TEST(FastRoutingAwareCompilerTest, ImprovedLoadingStoring) {
+  const auto qc = qasm3::Importer::imports(circuitGraphstate.data());
+  const auto arch =
+      Architecture::fromJSONString(architectureSpecificationGraphstate);
+  const RoutingAwareCompiler::Config config = {
+      .layoutSynthesizerConfig =
+          {.placerConfig = HeuristicPlacer::Config::createForMethod(
+               HeuristicPlacer::Config::Method::IDS),
+           .routerConfig = {.method =
+                                IndependentSetRouter::Config::Method::RELAXED}},
+      .codeGeneratorConfig = {.warnUnsupportedGates = false}};
   RoutingAwareCompiler compiler(arch, config);
   EXPECT_NO_THROW(std::ignore = compiler.compile(qc));
 }
