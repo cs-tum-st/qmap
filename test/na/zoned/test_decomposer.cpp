@@ -33,7 +33,8 @@ constexpr std::string_view architectureJson = R"({
   "aods":[{"id": 0, "site_separation": 2, "r": 20, "c": 20}],
   "rydberg_range": [[[5, 70], [55, 110]]]
 })";
-//TODO: Tests for the U3 decomposition
+
+
 class DecomposerTest : public ::testing::Test {
 protected:
   Decomposer decomposer=Decomposer(4);
@@ -64,7 +65,6 @@ TEST(Test,ThreeQuaternionU3Test) {
   std::array<qc::fp,4> q1={cos(qc::PI_2),0,0,sin(qc::PI_2)};
   std::array<qc::fp,4> q2={cos(qc::PI_4/2),0,sin(qc::PI_4/2),0};
   std::array<qc::fp,4> q12=Decomposer::combine_quaternions(q1,q2);
-  //TODO:FIgure this out!!!
   EXPECT_THAT(q12,::testing::ElementsAre(::testing::DoubleNear(0,epsilon),
     ::testing::DoubleNear(-1*sin(qc::PI_4/2),epsilon),::testing::DoubleNear(0,epsilon),::testing::DoubleNear(cos(qc::PI_4/2),epsilon)));
   std::array<qc::fp,4> q3={cos(qc::PI_4),0,0,sin(qc::PI_4)};
@@ -127,11 +127,44 @@ TEST(Test, ThetaZeroAngleTest) {
 
 }
 
+//One or Two Decomposition Tests?
+
+
+TEST(Test, RXDecompositionTest) {
+  size_t n=1;
+  std::array<qc::fp,3> rx={qc::PI,-qc::PI_2,qc::PI_2};
+  //middle entry gamma_minus is -3/2 PI??
+  EXPECT_THAT(Decomposer::get_decomposition_angles(rx,qc::PI),::testing::ElementsAre(::testing::DoubleNear(qc::PI,epsilon),
+    ::testing::DoubleNear(qc::PI_2,epsilon),::testing::DoubleNear(qc::PI_2,epsilon)));
+
+}
+
+TEST(Test,U3DecompositionTest) {
+  size_t n=1;
+  std::array<qc::fp,3> u3={qc::PI_4,qc::PI,qc::PI_2};
+  // gamm minus i - PI_" not PI_2 and gam_plus is 0 not PI!!
+  EXPECT_THAT(Decomposer::get_decomposition_angles(u3,qc::PI_4),::testing::ElementsAre(::testing::DoubleNear(qc::PI,epsilon),
+    ::testing::DoubleNear(qc::PI,epsilon),::testing::DoubleNear(-qc::PI_2,epsilon)));
+}
+
+TEST(Test,DoubleDecompositionTest) {
+  size_t n=1;
+  std::array<qc::fp,3> x1={qc::PI,-qc::PI_2,qc::PI_2};
+  std::array<qc::fp,3> z2={0,0,qc::PI};
+  //gamm_min is - 3/2 PI not 0 and gamm_plus is PI_2 not zero
+  EXPECT_THAT(Decomposer::get_decomposition_angles(x1,qc::PI),::testing::ElementsAre(::testing::DoubleNear(qc::PI,epsilon),
+    ::testing::DoubleNear(0,epsilon),::testing::DoubleNear(0,epsilon)));
+  // gamm_min is 0 not PI_2 and gamm_plus is PI not PI_2
+  EXPECT_THAT(Decomposer::get_decomposition_angles(z2,qc::PI),::testing::ElementsAre(::testing::DoubleNear(0,epsilon),
+   ::testing::DoubleNear(qc::PI_2,epsilon),::testing::DoubleNear(qc::PI_2,epsilon)));
+
+}
+
 TEST_F(DecomposerTest, SingleRXGate) {
   //    ┌───────┐
   // q: ┤ Rx(π) ├
   //    └───────┘
-  size_t n=1;
+  int n=1;
   qc::QuantumComputation qc(n);
   qc.rx(qc::PI, 0);
   Decomposer decomposer=Decomposer(n);
