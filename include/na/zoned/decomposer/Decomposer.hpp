@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DecomposerBase.hpp"
 #include "ir/operations/StandardOperation.hpp"
 #include "na/zoned/Types.hpp"
 
@@ -7,7 +8,7 @@
 
 namespace na::zoned {
 
-  class Decomposer {
+  class Decomposer  : public DecomposerBase{
   private:
     struct struct_U3{
       std::array<qc::fp,3> angles;
@@ -54,7 +55,7 @@ namespace na::zoned {
      * @param layers is a std::vector of SingleQubitGateLayers of a scheduled circuit
      * @returns a vector of vectors of a struct_U3's representing the single qubit gate layers
      */
-    [[nodiscard]] auto transform_to_U3(const std::vector<SingleQubitGateLayer>& layers) const
+    [[nodiscard]] auto transform_to_U3(const std::vector<SingleQubitGateRefLayer>& layers) const
         -> std::vector<std::vector<struct_U3>>;
     /**
      * Takes a vector of qc::fp's representing the U3-Gate angles of a single qubit hate and the maximal value of theta
@@ -71,10 +72,8 @@ namespace na::zoned {
     Decomposer(int n_qubits);
 
     [[nodiscard]] auto
-    decompose(const std::pair<std::vector<SingleQubitGateLayer>,
-                              std::vector<TwoQubitGateLayer>>& schedule) const
-        -> std::pair<std::vector<SingleQubitGateLayer>,
-                     std::vector<TwoQubitGateLayer>>;
+    decompose(const std::vector<SingleQubitGateRefLayer>& singleQubitGateLayers) const
+      -> std::vector<SingleQubitGateLayer> override;
 
 
   };

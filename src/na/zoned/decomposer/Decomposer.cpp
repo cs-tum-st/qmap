@@ -145,10 +145,9 @@ auto Decomposer::combine_quaternions(const std::array<qc::fp, 4>& q1,
   }
   return theta_max;
 }
-
-auto Decomposer::transform_to_U3(
-    const std::vector<SingleQubitGateLayer>& layers) const
-    -> std::vector<std::vector<struct_U3>> {
+  auto Decomposer::transform_to_U3(
+      const std::vector<SingleQubitGateRefLayer>& layers) const
+      -> std::vector<std::vector<struct_U3>> {
   // auto u=struct_U3({0,0,0},0);
   std::vector<std::vector<struct_U3>> new_layers;
   for (const auto& layer : layers) {
@@ -156,7 +155,7 @@ auto Decomposer::transform_to_U3(
         this->N_qubits);
     std::vector<struct_U3> new_layer;
     for (auto gate : layer) {
-      gates[gate.get().getNtargets()].push_back(gate);
+      gates[gate.get().getTargets().front()].push_back(gate);
     }
 
     for (auto qubit_gates : gates) {
@@ -181,19 +180,18 @@ auto Decomposer::get_decomposition_angles(const std::array<qc::fp, 3>& angles,
   qc::fp alpha, chi, beta;
   //U3(theta,phi_min(phi),phi_plus(lamda)->Rz(gamma_minus)GR(theta_max/2, PI_2)Rz(chi)GR(-theta_max/2,PI_2)RZ(gamma_plus)
   if (abs(angles[0]-theta_max) < epsilon) {
-    alpha=qc::PI_2;
     chi=qc::PI;
+    if (abs(cos(theta_max/2))<epsilon) { //Periodicity covered?
+      alpha=0;
+    }else{
+      alpha=qc::PI_2;
+    }
   }else {
     qc::fp kappa=sqrt((sin(angles[0]/2)*sin(angles[0]/2))/(sin(theta_max)*sin(theta_max)-(sin(angles[0]/2)*sin(angles[0]/2))));
     alpha=atan(cos(theta_max/2)*kappa);
     chi=fmod(2*atan(kappa),qc::TAU);
   }
-
-  if (abs(angles[0]) > epsilon) {
-    beta=theta_max<0?qc::PI_2:-1*qc::PI_2;
-  }else {
-    beta=0;
-  }
+    beta=angles[0]<0?-1*qc::PI_2:qc::PI_2;
   qc::fp gamma_plus=fmod(angles[2]-(alpha+beta),qc::TAU);
   qc::fp gamma_minus=fmod(angles[1]-(alpha-beta),qc::TAU);
 
@@ -201,12 +199,10 @@ auto Decomposer::get_decomposition_angles(const std::array<qc::fp, 3>& angles,
 }
 
 
-auto Decomposer::decompose(
-    const std::pair<std::vector<SingleQubitGateLayer>,
-                    std::vector<TwoQubitGateLayer>>& schedule) const
-    -> std::pair<std::vector<SingleQubitGateLayer>,
-                 std::vector<TwoQubitGateLayer>> {
-  std::vector<std::vector<struct_U3>> U3Layers=transform_to_U3(schedule.first);
+auto Decomposer::decompose(const std::vector<SingleQubitGateRefLayer>& singleQubitGateLayers) const
+      -> std::vector<SingleQubitGateLayer>{
+
+  std::vector<std::vector<struct_U3>> U3Layers=transform_to_U3(singleQubitGateLayers);
   std::vector<SingleQubitGateLayer> NewSingleQubitLayers=std::vector<SingleQubitGateLayer>{};
 
   for (const auto& layer: U3Layers) {
@@ -221,16 +217,16 @@ auto Decomposer::decompose(
 
       // GR(theta_max/2, PI_2)==Global Y due to PI_2
       auto sop=qc::StandardOperation(gate.qubit,qc::RZ,{decomp_angles[1]});
-      qc::Operation *op=&sop;
-      FrontLayer.emplace_back(std::reference_wrapper<qc::Operation>(*op));
+      std::unique_ptr<const qc::Operation> op=std::make_unique<const qc::StandardOperation>(sop);
+      FrontLayer.emplace_back(std::move(op));
 
       sop=qc::StandardOperation(gate.qubit,qc::RZ,{decomp_angles[0]});
-      op=&sop;
-      MidLayer.emplace_back(std::reference_wrapper<qc::Operation>(*op));
+      op=std::make_unique<const qc::StandardOperation>(sop);
+      MidLayer.emplace_back(std::move(op));
 
       sop=qc::StandardOperation(gate.qubit,qc::RZ,{decomp_angles[2]});
-      op=&sop;
-      MidLayer.emplace_back(std::reference_wrapper<qc::Operation>(*op));
+      op=std::make_unique<const qc::StandardOperation>(sop);
+      BackLayer.emplace_back(std::move(op));
     }//gate::layer
 
     std::vector< std::unique_ptr<qc::Operation>> GR_plus;
@@ -241,26 +237,26 @@ auto Decomposer::decompose(
       GR_minus.emplace_back(new qc::StandardOperation(i,qc::RY,{-1*theta_max/2}));
     }
 
-    for (auto gate:FrontLayer) {
-      NewLayer.push_back(gate);
+    for (auto&& gate:FrontLayer) {
+      NewLayer.push_back(std::move(gate));
     }
 
     auto cop= qc::CompoundOperation(std::move(GR_plus),true);
-    qc::Operation *ryp=&cop;
-    NewLayer.emplace_back(*ryp);
+    std::unique_ptr<const qc::Operation> ryp=std::make_unique<const qc::CompoundOperation>(cop);
+    NewLayer.emplace_back(std::move(ryp));
 
-    for (auto gate:MidLayer) {
-      NewLayer.push_back(gate);
+    for (auto&& gate:MidLayer) {
+      NewLayer.push_back(std::move(gate));
     }
     cop=qc::CompoundOperation(std::move(GR_minus),true);
-    qc::Operation *rym=&cop;
-    NewLayer.emplace_back(*rym);
+    std::unique_ptr<const qc::Operation> rym=std::make_unique<const qc::CompoundOperation>(cop);
+    NewLayer.emplace_back(std::move(rym));
 
-    for (auto gate:BackLayer) {
-      NewLayer.push_back(gate);
+    for (auto&& gate:BackLayer) {
+      NewLayer.push_back(std::move(gate));
     }
-    NewSingleQubitLayers.push_back(NewLayer);
+    NewSingleQubitLayers.push_back(std::move(NewLayer));
   }//layer::SingleQubitLayers
-  return std::pair{NewSingleQubitLayers,schedule.second};
+  return NewSingleQubitLayers;
 }
 }// namespace na::zoned

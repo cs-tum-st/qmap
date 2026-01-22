@@ -133,9 +133,8 @@ TEST(Test, ThetaZeroAngleTest) {
 TEST(Test, RXDecompositionTest) {
   size_t n=1;
   std::array<qc::fp,3> rx={qc::PI,-qc::PI_2,qc::PI_2};
-  //middle entry gamma_minus is -3/2 PI??
   EXPECT_THAT(Decomposer::get_decomposition_angles(rx,qc::PI),::testing::ElementsAre(::testing::DoubleNear(qc::PI,epsilon),
-    ::testing::DoubleNear(qc::PI_2,epsilon),::testing::DoubleNear(qc::PI_2,epsilon)));
+    ::testing::DoubleNear(0,epsilon),::testing::DoubleNear(0,epsilon)));
 
 }
 
@@ -170,7 +169,24 @@ TEST_F(DecomposerTest, SingleRXGate) {
   Decomposer decomposer=Decomposer(n);
   const auto& sched =
       scheduler.schedule(qc);
-  // auto decomp=decomposer.decompose(sched);
+  auto decomp=decomposer.decompose(sched.first);
+  //DEcomposition for (PI,0,PI) NOT (PI,-PI_2,PI_2) due to back calculation!! EQUivalent!!
+  EXPECT_EQ(decomp.size(),1);
+  EXPECT_EQ(decomp[0].size(), 5);
+  EXPECT_EQ(decomp[0][0]->getType(),qc::RZ);
+  EXPECT_THAT(decomp[0][0]->getTargets(),::testing::ElementsAre(0));
+  EXPECT_THAT(decomp[0][0]->getParameter(),::testing::ElementsAre(::testing::DoubleNear(qc::PI_2,epsilon)));
+  EXPECT_TRUE(decomp[0][1]->isCompoundOperation());
+  EXPECT_TRUE(decomp[0][1]->isGlobal(n));
+  EXPECT_EQ(decomp[0][2]->getType(),qc::RZ);
+  EXPECT_THAT(decomp[0][2]->getTargets(),::testing::ElementsAre(0));
+  EXPECT_THAT(decomp[0][2]->getParameter(),::testing::ElementsAre(::testing::DoubleNear(qc::PI,epsilon)));
+  EXPECT_TRUE(decomp[0][3]->isCompoundOperation());
+  EXPECT_TRUE(decomp[0][3]->isGlobal(n));
+  EXPECT_EQ(decomp[0][4]->getType(),qc::RZ);
+  EXPECT_THAT(decomp[0][4]->getTargets(),::testing::ElementsAre(0));
+  EXPECT_THAT(decomp[0][4]->getParameter(),::testing::ElementsAre(::testing::DoubleNear(qc::PI_2,epsilon)));
+
 }
 
 TEST_F(DecomposerTest, SingleU3Gate) {
