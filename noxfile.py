@@ -205,6 +205,7 @@ def stubs(session: nox.Session) -> None:
     )
 
     package_root = Path(__file__).parent / "python" / "mqt" / "qmap"
+    pattern_file = Path(__file__).parent / "bindings" / "qmap_patterns.txt"
 
     session.run(
         "python",
@@ -214,6 +215,8 @@ def stubs(session: nox.Session) -> None:
         "--include-private",
         "--output-dir",
         str(package_root),
+        "--pattern-file",
+        str(pattern_file),
         "--module",
         "mqt.qmap.na",
         "--module",
