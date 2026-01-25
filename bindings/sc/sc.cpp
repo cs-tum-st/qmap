@@ -174,7 +174,7 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
   // All configuration options for QMAP
   nb::class_<Configuration>(
       m, "Configuration",
-      "Configuration options for the MQT QMAP quantum circuit mapping tool")
+      "Class representing the configuration for the mapping.")
       .def(nb::init<>())
       .def_rw("method", &Configuration::method)
       .def_rw("heuristic", &Configuration::heuristic)
@@ -200,7 +200,7 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
       .def_rw("encoding", &Configuration::encoding)
       .def_rw("commander_grouping", &Configuration::commanderGrouping)
       .def_rw("use_subsets", &Configuration::useSubsets)
-      .def_rw("include_WCNF", &Configuration::includeWCNF)
+      .def_rw("include_wcnf", &Configuration::includeWCNF)
       .def_rw("enable_limits", &Configuration::enableSwapLimits)
       .def_rw("swap_reduction", &Configuration::swapReduction)
       .def_rw("swap_limit", &Configuration::swapLimit)
@@ -215,18 +215,18 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
               &Configuration::addBarriersBetweenLayers)
       .def("json",
            [](const Configuration& config) {
-             const nb::module_ json = nb::module_::import_("json");
-             const nb::object loads = json.attr("loads");
-             return loads(config.json().dump());
+             const auto json = nb::module_::import_("json");
+             const auto loads = json.attr("loads");
+             const auto dict = loads(config.json().dump());
+             return nb::cast<nb::typed<nb::dict, nb::str, nb::any>>(dict);
            })
       .def("__repr__", &Configuration::toString);
 
   // Results of the mapping process
-  nb::class_<MappingResults>(
-      m, "MappingResults",
-      "Results of the MQT QMAP quantum circuit mapping tool")
+  nb::class_<MappingResults>(m, "MappingResults",
+                             "Class representing the results of a mapping.")
       .def(nb::init<>())
-      .def_rw("input", &MappingResults::input)
+      .def_rw("input_", &MappingResults::input)
       .def_rw("output", &MappingResults::output)
       .def_rw("configuration", &MappingResults::config)
       .def_rw("time", &MappingResults::time)
@@ -238,15 +238,16 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
       .def_rw("wcnf", &MappingResults::wcnf)
       .def("json",
            [](const MappingResults& results) {
-             const nb::module_ json = nb::module_::import_("json");
-             const nb::object loads = json.attr("loads");
-             return loads(results.json().dump());
+             const auto json = nb::module_::import_("json");
+             const auto loads = json.attr("loads");
+             const auto dict = loads(results.json().dump());
+             return nb::cast<nb::typed<nb::dict, nb::str, nb::any>>(dict);
            })
       .def("__repr__", &MappingResults::toString);
 
   // Main class for storing circuit information
-  nb::class_<MappingResults::CircuitInfo>(m, "CircuitInfo",
-                                          "Circuit information")
+  nb::class_<MappingResults::CircuitInfo>(
+      m, "CircuitInfo", "Class containing circuit information.")
       .def(nb::init<>())
       .def_rw("name", &MappingResults::CircuitInfo::name)
       .def_rw("qubits", &MappingResults::CircuitInfo::qubits)
@@ -277,9 +278,10 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
       .def_rw("effective_branching_factor",
               &MappingResults::HeuristicBenchmarkInfo::effectiveBranchingFactor)
       .def("json", [](const MappingResults::HeuristicBenchmarkInfo& info) {
-        const nb::module_ json = nb::module_::import_("json");
-        const nb::object loads = json.attr("loads");
-        return loads(info.json().dump());
+        const auto json = nb::module_::import_("json");
+        const auto loads = json.attr("loads");
+        const auto dict = loads(info.json().dump());
+        return nb::cast<nb::typed<nb::dict, nb::str, nb::any>>(dict);
       });
 
   // Heuristic benchmark information for individual layers
@@ -314,15 +316,16 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
       .def_rw("early_termination",
               &MappingResults::LayerHeuristicBenchmarkInfo::earlyTermination)
       .def("json", [](const MappingResults::LayerHeuristicBenchmarkInfo& info) {
-        const nb::module_ json = nb::module_::import_("json");
-        const nb::object loads = json.attr("loads");
-        return loads(info.json().dump());
+        const auto json = nb::module_::import_("json");
+        const auto loads = json.attr("loads");
+        const auto dict = loads(info.json().dump());
+        return nb::cast<nb::typed<nb::dict, nb::str, nb::any>>(dict);
       });
 
   auto arch = nb::class_<Architecture>(
-      m, "Architecture", "Class representing device/backend information");
+      m, "Architecture", "Class representing device/backend information.");
   auto properties = nb::class_<Architecture::Properties>(
-      arch, "Properties", "Class representing properties of an architecture");
+      arch, "Properties", "Class representing properties of an architecture.");
 
   // Properties of an architecture (e.g. number of qubits, connectivity, error
   // rates, ...)
@@ -405,9 +408,10 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
       .def(
           "json",
           [](const Architecture::Properties& props) {
-            const nb::module_ json = nb::module_::import_("json");
-            const nb::object loads = json.attr("loads");
-            return loads(props.json().dump());
+            const auto json = nb::module_::import_("json");
+            const auto loads = json.attr("loads");
+            const auto dict = loads(props.json().dump());
+            return nb::cast<nb::typed<nb::dict, nb::str, nb::any>>(dict);
           },
           "Returns a JSON-style dictionary of all the information present in "
           "the :class:`.Properties`")
@@ -448,5 +452,14 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
            "properties"_a);
 
   // Main mapping function
-  m.def("map", &map, "map a quantum circuit", "circ"_a, "arch"_a, "config"_a);
+  m.def("map_", &map, "circ"_a, "arch"_a, "config"_a,
+        R"pb(Map a quantum circuit to an architecture.
+
+Args:
+    circ: The quantum circuit to map.
+    arch: The architecture to map to.
+    config: The mapping configuration.
+
+Returns:
+    A tuple containing the mapped circuit and the mapping results.)pb");
 }

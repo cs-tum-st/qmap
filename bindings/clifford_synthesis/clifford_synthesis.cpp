@@ -50,9 +50,9 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
       .value("verbose", plog::Severity::verbose, "Show all information.");
 
   // Configuration for the synthesis
-  nb::class_<cs::Configuration>(
-      m, "SynthesisConfiguration",
-      "Configuration options for the MQT QMAP Clifford synthesis tool.")
+  nb::class_<cs::Configuration>(m, "SynthesisConfiguration",
+                                "Class representing the configuration for the "
+                                "Clifford synthesis techniques.")
       .def(nb::init<>())
       .def_rw("initial_timestep_limit",
               &cs::Configuration::initialTimestepLimit,
@@ -68,20 +68,20 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
               "is known.")
       .def_rw(
           "use_maxsat", &cs::Configuration::useMaxSAT,
-          "Use MaxSAT to solve the synthesis problem or to really on the "
-          "binary search scheme for finding the optimum. Defaults to `false`.")
+          "Use MaxSAT to solve the synthesis problem or to rely on the "
+          "binary search scheme for finding the optimum. Defaults to `False`.")
       .def_rw("linear_search", &cs::Configuration::linearSearch,
-              "Use liner search instead of binary search "
-              "scheme for finding the optimum. Defaults to `false`.")
+              "Use linear search instead of binary search "
+              "scheme for finding the optimum. Defaults to `False`.")
       .def_rw("target_metric", &cs::Configuration::target,
               "Target metric for the Clifford synthesis. Defaults to `gates`.")
       .def_rw("use_symmetry_breaking", &cs::Configuration::useSymmetryBreaking,
               "Use symmetry breaking clauses to speed up the synthesis "
-              "process. Defaults to `true`.")
+              "process. Defaults to `True`.")
       .def_rw("dump_intermediate_results",
               &cs::Configuration::dumpIntermediateResults,
               "Dump intermediate results of the synthesis process. "
-              "Defaults to `false`.")
+              "Defaults to `False`.")
       .def_rw("intermediate_results_path",
               &cs::Configuration::intermediateResultsPath,
               "Path to the directory where intermediate results should "
@@ -98,7 +98,7 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
           &cs::Configuration::minimizeGatesAfterDepthOptimization,
           "Depth optimization might produce a circuit with more gates than "
           "necessary. This option enables an additional run of the synthesizer "
-          "to minimize the overall number of gates. Defaults to `false`.")
+          "to minimize the overall number of gates. Defaults to `False`.")
       .def_rw(
           "try_higher_gate_limit_for_two_qubit_gate_optimization",
           &cs::Configuration::tryHigherGateLimitForTwoQubitGateOptimization,
@@ -106,7 +106,7 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
           "to find an optimal solution for a certain timestep limit, but there "
           "might be a better solution for some higher timestep limit. This "
           "option enables an additional run of the synthesizer with a higher "
-          "gate limit. Defaults to `false`.")
+          "gate limit. Defaults to `False`.")
       .def_rw("gate_limit_factor", &cs::Configuration::gateLimitFactor,
               "Factor by which the gate limit is increased when "
               "trying to find a better solution for the two-qubit "
@@ -116,11 +116,11 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
               "Two-qubit gate optimization might produce a circuit "
               "with more gates than necessary. This option enables "
               "an additional run of the synthesizer to minimize the "
-              "overall number of gates. Defaults to `false`.")
+              "overall number of gates. Defaults to `False`.")
       .def_rw("heuristic", &cs::Configuration::heuristic,
               "Use heuristic to synthesize the circuit. "
               "This method synthesizes shallow intermediate circuits "
-              "and combines them. Defaults to `false`.")
+              "and combines them. Defaults to `False`.")
       .def_rw("split_size", &cs::Configuration::splitSize,
               "Size of subcircuits used in heuristic. "
               "Defaults to `5`.")
@@ -130,9 +130,10 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
       .def(
           "json",
           [](const cs::Configuration& config) {
-            const nb::module_ json = nb::module_::import_("json");
-            const nb::object loads = json.attr("loads");
-            return loads(config.json().dump());
+            const auto json = nb::module_::import_("json");
+            const auto loads = json.attr("loads");
+            const auto dict = loads(config.json().dump());
+            return nb::cast<nb::typed<nb::dict, nb::str, nb::any>>(dict);
           },
           "Returns a JSON-style dictionary of all the information present in "
           "the :class:`.Configuration`")
@@ -143,8 +144,9 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
           "present in the :class:`.Configuration`");
 
   // Results of the synthesis
-  nb::class_<cs::Results>(m, "SynthesisResults",
-                          "Results of the MQT QMAP Clifford synthesis tool.")
+  nb::class_<cs::Results>(
+      m, "SynthesisResults",
+      "Class representing the results of the Clifford synthesis techniques.")
       .def(nb::init<>())
       .def_prop_ro("gates", &cs::Results::getGates,
                    "Returns the number of gates in the circuit.")
@@ -166,12 +168,12 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
                    "Returns a string representation of the "
                    "synthesized circuit's tableau.")
       .def("sat", &cs::Results::sat,
-           "Returns `true` if the synthesis was successful.")
+           "Returns `True` if the synthesis was successful.")
       .def("unsat", &cs::Results::unsat,
-           "Returns `true` if the synthesis was unsuccessful.");
+           "Returns `True` if the synthesis was unsuccessful.");
 
   auto tableau = nb::class_<cs::Tableau>(
-      m, "Tableau", "A class for representing stabilizer tableaus.");
+      m, "Tableau", "Class representing a Clifford tableau.");
   tableau.def(nb::init<std::size_t, bool>(), "n"_a,
               "include_destabilizers"_a = false,
               "Creates a tableau for an n-qubit Clifford.");
@@ -182,11 +184,12 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
   tableau.def(
       nb::init<const std::string&, const std::string&>(), "stabilizers"_a,
       "destabilizers"_a,
-      "Constructs a tableau from two lists of Pauli strings, the Stabilizers"
-      "and Destabilizers.");
+      "Constructs a tableau from two lists of Pauli strings, the stabilizers "
+      "and destabilizers.");
 
   auto synthesizer = nb::class_<cs::CliffordSynthesizer>(
-      m, "CliffordSynthesizer", "A class for synthesizing Clifford circuits.");
+      m, "CliffordSynthesizer",
+      "The main class for the Clifford synthesis techniques.");
 
   synthesizer.def(nb::init<cs::Tableau, cs::Tableau>(), "initial_tableau"_a,
                   "target_tableau"_a,
@@ -210,7 +213,11 @@ NB_MODULE(MQT_QMAP_MODULE_NAME, m) {
   synthesizer.def_prop_ro("results", &cs::CliffordSynthesizer::getResults,
                           nb::rv_policy::reference_internal,
                           "Returns the results of the synthesis.");
-  synthesizer.def_prop_ro("result_circuit", [](cs::CliffordSynthesizer& self) {
-    return qasm3::Importer::imports(self.getResults().getResultCircuit());
-  });
+  synthesizer.def_prop_ro(
+      "result_circuit",
+      [](cs::CliffordSynthesizer& self) {
+        return qasm3::Importer::imports(self.getResults().getResultCircuit());
+      },
+      "Returns the synthesized circuit as a "
+      ":class:`~mqt.core.ir.QuantumComputation` object.");
 }
