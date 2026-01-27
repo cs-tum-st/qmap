@@ -116,7 +116,6 @@ auto Decomposer::combine_quaternions(const std::array<qc::fp, 4>& q1,
       phi = alph_1 + alph_2; // phi
       lambda = alph_1 - alph_2;
     } else {
-      // TODO: Which was set to zero???
       phi = 0;
       lambda = 2 * alph_1;
     }
@@ -126,7 +125,7 @@ auto Decomposer::combine_quaternions(const std::array<qc::fp, 4>& q1,
     if (abs(quat[1]) > epsilon || abs(quat[2]) > epsilon) {
       phi = 0;
       lambda = 2 * std::atan2(quat[1], quat[2]);
-      // 2*tan(q1/q2) = phi-lambda, but can't be disentangled
+      // atan can give PI instead of 0 Problem?
     } else {
       // This should never happen! Exception??
       phi = 0.;
