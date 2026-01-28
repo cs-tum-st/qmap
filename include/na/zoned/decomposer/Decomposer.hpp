@@ -19,13 +19,11 @@
 namespace na::zoned {
 
 class Decomposer : public DecomposerBase {
-private:
-  struct struct_U3 {
+  struct StructU3 {
     std::array<qc::fp, 3> angles;
-    int qubit;
+    qc::Qubit qubit;
   };
-  static inline constexpr qc::fp epsilon = 1e-5;
-  int N_qubits;
+  size_t nQubits;
 
 public:
   /**
