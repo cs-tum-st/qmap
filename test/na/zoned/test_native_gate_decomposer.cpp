@@ -13,7 +13,7 @@
 //
 
 #include "ir/QuantumComputation.hpp"
-#include "na/zoned/decomposer/Decomposer.hpp"
+#include "na/zoned/decomposer/NativeGateDecomposer.hpp"
 #include "na/zoned/scheduler/ASAPScheduler.hpp"
 
 #include <gmock/gmock-matchers.h>
@@ -46,13 +46,15 @@ constexpr std::string_view architectureJson = R"({
 
 class DecomposerTest : public ::testing::Test {
 protected:
-  Decomposer decomposer = Decomposer(4);
   Architecture architecture;
-  ASAPScheduler::Config config{.maxFillingFactor = .8};
+  ASAPScheduler::Config schedulerConfig{.maxFillingFactor = .8};
   ASAPScheduler scheduler;
+  NativeGateDecomposer::Config decomposerConfig{};
+  NativeGateDecomposer decomposer;
   DecomposerTest()
       : architecture(Architecture::fromJSONString(architectureJson)),
-        scheduler(architecture, config) {}
+        scheduler(architecture, schedulerConfig),
+        decomposer(architecture, decomposerConfig) {}
 };
 
 qc::fp epsilon = 1e-5;
@@ -60,14 +62,15 @@ qc::fp epsilon = 1e-5;
 TEST(Test, ThreeQuaternionCombiTest) {
   std::array<qc::fp, 4> q1 = {cos(qc::PI_4), 0, 0, sin(qc::PI_4)};
   std::array<qc::fp, 4> q2 = {cos(qc::PI_2), 0, sin(qc::PI_2), 0};
-  std::array<qc::fp, 4> q12 = Decomposer::combine_quaternions(q1, q2);
+  std::array<qc::fp, 4> q12 = NativeGateDecomposer::combine_quaternions(q1, q2);
   EXPECT_THAT(q12, ::testing::ElementsAre(
                        ::testing::DoubleNear(0, epsilon),
                        ::testing::DoubleNear(-1 * cos(qc::PI_4), epsilon),
                        ::testing::DoubleNear(cos(qc::PI_4), epsilon),
                        ::testing::DoubleNear(0, epsilon)));
   std::array<qc::fp, 4> q3 = {cos(qc::PI_2), 0, 0, sin(qc::PI_2)};
-  std::array<qc::fp, 4> q13 = Decomposer::combine_quaternions(q12, q3);
+  std::array<qc::fp, 4> q13 =
+      NativeGateDecomposer::combine_quaternions(q12, q3);
   EXPECT_THAT(
       q13, ::testing::ElementsAre(::testing::DoubleNear(0, epsilon),
                                   ::testing::DoubleNear(cos(qc::PI_4), epsilon),
@@ -78,14 +81,15 @@ TEST(Test, ThreeQuaternionCombiTest) {
 TEST(Test, ThreeQuaternionU3Test) {
   std::array<qc::fp, 4> q1 = {cos(qc::PI_2), 0, 0, sin(qc::PI_2)};
   std::array<qc::fp, 4> q2 = {cos(qc::PI_4 / 2), 0, sin(qc::PI_4 / 2), 0};
-  std::array<qc::fp, 4> q12 = Decomposer::combine_quaternions(q1, q2);
+  std::array<qc::fp, 4> q12 = NativeGateDecomposer::combine_quaternions(q1, q2);
   EXPECT_THAT(q12, ::testing::ElementsAre(
                        ::testing::DoubleNear(0, epsilon),
                        ::testing::DoubleNear(-1 * sin(qc::PI_4 / 2), epsilon),
                        ::testing::DoubleNear(0, epsilon),
                        ::testing::DoubleNear(cos(qc::PI_4 / 2), epsilon)));
   std::array<qc::fp, 4> q3 = {cos(qc::PI_4), 0, 0, sin(qc::PI_4)};
-  std::array<qc::fp, 4> q13 = Decomposer::combine_quaternions(q12, q3);
+  std::array<qc::fp, 4> q13 =
+      NativeGateDecomposer::combine_quaternions(q12, q3);
   qc::fp r2 = 1 / sqrt(2);
   EXPECT_THAT(q13, ::testing::ElementsAre(
                        ::testing::DoubleNear(-r2 * cos(qc::PI_4 / 2), epsilon),
@@ -100,10 +104,10 @@ TEST(Test, SingleXGateAngleTest) {
 
   qc::QuantumComputation qc(n);
   qc.rx(qc::PI, 0);
-  std::array<qc::fp, 4> q = Decomposer::convert_gate_to_quaternion(
+  std::array<qc::fp, 4> q = NativeGateDecomposer::convert_gate_to_quaternion(
       std::reference_wrapper<const qc::Operation>(*op));
   EXPECT_THAT(
-      Decomposer::get_U3_angles_from_quaternion(q),
+      NativeGateDecomposer::get_U3_angles_from_quaternion(q),
       ::testing::ElementsAre(::testing::DoubleNear(qc::PI, epsilon),
                              ::testing::DoubleNear(-1 * qc::PI_2, epsilon),
                              ::testing::DoubleNear(qc::PI_2, epsilon)));
@@ -113,7 +117,7 @@ TEST(Test, SingleU3GateAngleTest) {
   size_t n = 1;
   const qc::Operation* op =
       new qc::StandardOperation(0, qc::U, {qc::PI_4, qc::PI, qc::PI_2});
-  std::array<qc::fp, 4> q = Decomposer::convert_gate_to_quaternion(
+  std::array<qc::fp, 4> q = NativeGateDecomposer::convert_gate_to_quaternion(
       std::reference_wrapper<const qc::Operation>(*op));
   qc::fp r2 = 1 / sqrt(2);
   EXPECT_THAT(q, ::testing::ElementsAre(
@@ -122,7 +126,7 @@ TEST(Test, SingleU3GateAngleTest) {
                      ::testing::DoubleNear(r2 * sin(qc::PI_4 / 2), epsilon),
                      ::testing::DoubleNear(r2 * cos(qc::PI_4 / 2), epsilon)));
 
-  EXPECT_THAT(Decomposer::get_U3_angles_from_quaternion(q),
+  EXPECT_THAT(NativeGateDecomposer::get_U3_angles_from_quaternion(q),
               ::testing::ElementsAre(::testing::DoubleNear(qc::PI_4, epsilon),
                                      ::testing::DoubleNear(qc::PI, epsilon),
                                      ::testing::DoubleNear(qc::PI_2, epsilon)));
@@ -132,7 +136,7 @@ TEST(Test, ThetaPiAngleTest) {
   size_t n = 1;
   const qc::Operation* op =
       new qc::StandardOperation(0, qc::U, {qc::PI, qc::PI, qc::PI_2});
-  std::array<qc::fp, 4> q = Decomposer::convert_gate_to_quaternion(
+  std::array<qc::fp, 4> q = NativeGateDecomposer::convert_gate_to_quaternion(
       std::reference_wrapper<const qc::Operation>(*op));
   qc::fp r2 = 1 / sqrt(2);
   EXPECT_THAT(q, ::testing::ElementsAre(::testing::DoubleNear(0, epsilon),
@@ -140,7 +144,7 @@ TEST(Test, ThetaPiAngleTest) {
                                         ::testing::DoubleNear(r2, epsilon),
                                         ::testing::DoubleNear(0, epsilon)));
   EXPECT_THAT(
-      Decomposer::get_U3_angles_from_quaternion(q),
+      NativeGateDecomposer::get_U3_angles_from_quaternion(q),
       ::testing::ElementsAre(::testing::DoubleNear(qc::PI, epsilon),
                              ::testing::DoubleNear(0, epsilon),
                              ::testing::DoubleNear(-1 * qc::PI_2, epsilon)));
@@ -150,7 +154,7 @@ TEST(Test, ThetaZeroAngleTest) {
   size_t n = 1;
   const qc::Operation* op =
       new qc::StandardOperation(0, qc::U, {0, qc::PI, qc::PI_2});
-  std::array<qc::fp, 4> q = Decomposer::convert_gate_to_quaternion(
+  std::array<qc::fp, 4> q = NativeGateDecomposer::convert_gate_to_quaternion(
       std::reference_wrapper<const qc::Operation>(*op));
   qc::fp r2 = 1 / sqrt(2);
   EXPECT_THAT(q, ::testing::ElementsAre(::testing::DoubleNear(-r2, epsilon),
@@ -159,7 +163,7 @@ TEST(Test, ThetaZeroAngleTest) {
                                         ::testing::DoubleNear(r2, epsilon)));
 
   EXPECT_THAT(
-      Decomposer::get_U3_angles_from_quaternion(q),
+      NativeGateDecomposer::get_U3_angles_from_quaternion(q),
       ::testing::ElementsAre(::testing::DoubleNear(0, epsilon),
                              ::testing::DoubleNear(0, epsilon),
                              ::testing::DoubleNear(3 * qc::PI_2, epsilon)));
@@ -168,7 +172,7 @@ TEST(Test, ThetaZeroAngleTest) {
 TEST(Test, RXDecompositionTest) {
   size_t n = 1;
   std::array<qc::fp, 3> rx = {qc::PI, -qc::PI_2, qc::PI_2};
-  EXPECT_THAT(Decomposer::get_decomposition_angles(rx, qc::PI),
+  EXPECT_THAT(NativeGateDecomposer::get_decomposition_angles(rx, qc::PI),
               ::testing::ElementsAre(::testing::DoubleNear(qc::PI, epsilon),
                                      ::testing::DoubleNear(0, epsilon),
                                      ::testing::DoubleNear(0, epsilon)));
@@ -179,7 +183,7 @@ TEST(Test, U3DecompositionTest) {
   std::array<qc::fp, 3> u3 = {qc::PI_4, qc::PI, qc::PI_2};
   // gamm minus i - PI_" not PI_2 and game_plus is 0 not PI!!
   EXPECT_THAT(
-      Decomposer::get_decomposition_angles(u3, qc::PI_4),
+      NativeGateDecomposer::get_decomposition_angles(u3, qc::PI_4),
       ::testing::ElementsAre(::testing::DoubleNear(qc::PI, epsilon),
                              ::testing::DoubleNear(qc::PI, epsilon),
                              ::testing::DoubleNear(-qc::PI_2, epsilon)));
@@ -189,11 +193,11 @@ TEST(Test, DoubleDecompositionTest) {
   size_t n = 1;
   std::array<qc::fp, 3> x1 = {qc::PI, -qc::PI_2, qc::PI_2};
   std::array<qc::fp, 3> z2 = {0, 0, qc::PI};
-  EXPECT_THAT(Decomposer::get_decomposition_angles(x1, qc::PI),
+  EXPECT_THAT(NativeGateDecomposer::get_decomposition_angles(x1, qc::PI),
               ::testing::ElementsAre(::testing::DoubleNear(qc::PI, epsilon),
                                      ::testing::DoubleNear(0, epsilon),
                                      ::testing::DoubleNear(0, epsilon)));
-  EXPECT_THAT(Decomposer::get_decomposition_angles(z2, qc::PI),
+  EXPECT_THAT(NativeGateDecomposer::get_decomposition_angles(z2, qc::PI),
               ::testing::ElementsAre(::testing::DoubleNear(0, epsilon),
                                      ::testing::DoubleNear(qc::PI_2, epsilon),
                                      ::testing::DoubleNear(qc::PI_2, epsilon)));
@@ -206,9 +210,8 @@ TEST_F(DecomposerTest, SingleRXGate) {
   int n = 1;
   qc::QuantumComputation qc(n);
   qc.rx(qc::PI, 0);
-  Decomposer decomposer = Decomposer(n);
   const auto& sched = scheduler.schedule(qc);
-  auto decomp = decomposer.decompose(sched.first);
+  auto decomp = decomposer.decompose(qc.getNqubits(), sched.first);
   EXPECT_EQ(decomp.size(), 1);
   EXPECT_EQ(decomp[0].size(), 5);
   EXPECT_EQ(decomp[0][0]->getType(), qc::RZ);
@@ -236,9 +239,8 @@ TEST_F(DecomposerTest, SingleU3Gate) {
   int n = 1;
   qc::QuantumComputation qc(n);
   qc.u(0.0, qc::PI, qc::PI_2, 0);
-  Decomposer decomposer = Decomposer(n);
   const auto& sched = scheduler.schedule(qc);
-  auto decomp = decomposer.decompose(sched.first);
+  auto decomp = decomposer.decompose(qc.getNqubits(), sched.first);
   EXPECT_EQ(decomp.size(), 1);
   EXPECT_EQ(decomp[0].size(), 5);
 
@@ -271,9 +273,8 @@ TEST_F(DecomposerTest, TwoPauliGatesOneQubit) {
   qc::QuantumComputation qc(n);
   qc.x(0);
   qc.z(0);
-  Decomposer decomposer = Decomposer(n);
   const auto& sched = scheduler.schedule(qc);
-  auto decomp = decomposer.decompose(sched.first);
+  auto decomp = decomposer.decompose(qc.getNqubits(), sched.first);
 
   EXPECT_EQ(decomp.size(), 1);
   EXPECT_EQ(decomp[0].size(), 5);
@@ -309,9 +310,8 @@ TEST_F(DecomposerTest, TwoPauliGatesTwoQubits) {
   qc::QuantumComputation qc(n);
   qc.x(0);
   qc.z(1);
-  Decomposer decomposer = Decomposer(n);
   const auto& sched = scheduler.schedule(qc);
-  auto decomp = decomposer.decompose(sched.first);
+  auto decomp = decomposer.decompose(qc.getNqubits(), sched.first);
   EXPECT_EQ(decomp.size(), 1);
   EXPECT_EQ(decomp[0].size(), 8);
 
@@ -366,9 +366,8 @@ TEST_F(DecomposerTest, TwoQubitsTwoLayers) {
   qc.cz(0, 1);
   qc.z(0);
   qc.x(1);
-  Decomposer decomposer = Decomposer(n);
   const auto& sched = scheduler.schedule(qc);
-  auto decomp = decomposer.decompose(sched.first);
+  auto decomp = decomposer.decompose(qc.getNqubits(), sched.first);
   EXPECT_EQ(decomp.size(), 2);
   EXPECT_EQ(decomp[0].size(), 5);
   EXPECT_EQ(decomp[1].size(), 8);

@@ -23,12 +23,26 @@ class NativeGateDecomposer : public DecomposerBase {
     std::array<qc::fp, 3> angles;
     qc::Qubit qubit;
   };
-  size_t nQubits_;
+  size_t nQubits_ = 0;
 
   constexpr static qc::fp epsilon =
       std::numeric_limits<qc::fp>::epsilon() * 1024;
 
 public:
+  /// The configuration of the NativeGateDecomposer
+  struct Config {
+    template <typename BasicJsonType>
+    friend void to_json(BasicJsonType& /* unused */,
+                        const Config& /* unused */) {}
+    template <typename BasicJsonType>
+    friend void from_json(const BasicJsonType& /* unused */,
+                          Config& /* unused */) {}
+  };
+
+  /// Create a new NativeGateDecomposer.
+  NativeGateDecomposer(const Architecture& /* unused */,
+                       const Config& /* unused */) {}
+
   /**
    * Converts commonly used single qubit gates into their Quaternion
    * representation
@@ -67,7 +81,7 @@ public:
    * @param layer is a SingleQubitGateLayers of a scheduled
    * @returns the maximal value of theta in the given layer
    */
-  static auto calc_theta_max(const std::vector<struct_U3>& layer) -> qc::fp;
+  static auto calc_theta_max(const std::vector<StructU3>& layer) -> qc::fp;
 
   /**
    * Takes a vector of SingleQubitGateLayer's and, for each layer
@@ -80,7 +94,7 @@ public:
    */
   [[nodiscard]] auto
   transform_to_U3(const std::vector<SingleQubitGateRefLayer>& layers) const
-      -> std::vector<std::vector<struct_U3>>;
+      -> std::vector<std::vector<StructU3>>;
   /**
    * Takes a vector of qc::fp's representing the U3-Gate angles of a single
    * qubit hate and the maximal value of theta for the single qubit gate layer
@@ -94,14 +108,10 @@ public:
   auto static get_decomposition_angles(const std::array<qc::fp, 3>& angles,
                                        qc::fp theta_max)
       -> std::array<qc::fp, 3>;
-  /**
-   * Create a new Decomposer.
-   * @param n_qubits is the number of qubits in the circuit to be decomposed
-   */
-  NativeGateDecomposer(int n_qubits);
 
-  [[nodiscard]] auto decompose(
-      const std::vector<SingleQubitGateRefLayer>& singleQubitGateLayers) const
+  [[nodiscard]] auto
+  decompose(size_t nQubits,
+            const std::vector<SingleQubitGateRefLayer>& singleQubitGateLayers)
       -> std::vector<SingleQubitGateLayer> override;
 };
 
