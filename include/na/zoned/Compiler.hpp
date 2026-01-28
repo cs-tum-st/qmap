@@ -204,7 +204,7 @@ public:
     SPDLOG_DEBUG("Decomposing...");
     const auto decomposingStart = std::chrono::system_clock::now();
     const auto& decomposedSingleQubitGateLayers =
-        SELF.decompose(qComp.getNqubits(), singleQubitGateLayers);
+        SELF.decompose(singleQubitGateLayers);
     const auto decomposingEnd = std::chrono::system_clock::now();
     statistics_.decomposingTime =
         std::chrono::duration_cast<std::chrono::microseconds>(decomposingEnd -
@@ -314,9 +314,9 @@ public:
 };
 
 class RoutingAwareNativeGateCompiler final
-    : public Compiler<RoutingAwareNativeGateCompiler, ASAPScheduler,
-                      NativeGateDecomposer, VertexMatchingReuseAnalyzer,
-                      RoutingAwareSynthesizer, CodeGenerator> {
+    : public Compiler<RoutingAwareCompiler, ASAPScheduler, NativeGateDecomposer,
+                      VertexMatchingReuseAnalyzer, RoutingAwareSynthesizer,
+                      CodeGenerator> {
 public:
   RoutingAwareNativeGateCompiler(const Architecture& architecture,
                                  const Config& config)
