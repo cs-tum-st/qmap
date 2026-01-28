@@ -18,7 +18,7 @@
 
 namespace na::zoned {
 
-class Decomposer : public DecomposerBase {
+class NativeGateDecomposer : public DecomposerBase {
   struct StructU3 {
     std::array<qc::fp, 3> angles;
     qc::Qubit qubit;
@@ -95,7 +95,7 @@ public:
    * Create a new Decomposer.
    * @param n_qubits is the number of qubits in the circuit to be decomposed
    */
-  Decomposer(int n_qubits);
+  NativeGateDecomposer(int n_qubits);
 
   [[nodiscard]] auto decompose(
       const std::vector<SingleQubitGateRefLayer>& singleQubitGateLayers) const

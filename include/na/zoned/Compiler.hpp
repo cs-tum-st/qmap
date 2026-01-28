@@ -12,6 +12,7 @@
 
 #include "Architecture.hpp"
 #include "code_generator/CodeGenerator.hpp"
+#include "decomposer/NativeGateDecomposer.hpp"
 #include "decomposer/NoOpDecomposer.hpp"
 #include "ir/QuantumComputation.hpp"
 #include "ir/operations/Operation.hpp"
@@ -309,6 +310,19 @@ public:
       : Compiler(architecture, config) {}
 
   explicit RoutingAwareCompiler(const Architecture& architecture)
+      : Compiler(architecture) {}
+};
+
+class RoutingAwareNativeGateCompiler final
+    : public Compiler<RoutingAwareCompiler, ASAPScheduler, NativeGateDecomposer,
+                      VertexMatchingReuseAnalyzer, RoutingAwareSynthesizer,
+                      CodeGenerator> {
+public:
+  RoutingAwareNativeGateCompiler(const Architecture& architecture,
+                                 const Config& config)
+      : Compiler(architecture, config) {}
+
+  explicit RoutingAwareNativeGateCompiler(const Architecture& architecture)
       : Compiler(architecture) {}
 };
 } // namespace na::zoned
