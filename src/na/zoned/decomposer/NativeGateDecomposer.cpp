@@ -20,9 +20,6 @@
 #include <vector>
 
 namespace na::zoned {
-NativeGateDecomposer::NativeGateDecomposer(int n_qubits) {
-  nQubits_ = n_qubits;
-};
 
 auto NativeGateDecomposer::convert_gate_to_quaternion(
     std::reference_wrapper<const qc::Operation> op) -> std::array<qc::fp, 4> {
@@ -143,7 +140,7 @@ auto NativeGateDecomposer::get_U3_angles_from_quaternion(
   return {theta, phi, lambda};
 }
 
-auto NativeGateDecomposer::calc_theta_max(const std::vector<struct_U3>& layer)
+auto NativeGateDecomposer::calc_theta_max(const std::vector<StructU3>& layer)
     -> qc::fp {
   qc::fp theta_max = 0;
   for (auto gate : layer) {
@@ -155,13 +152,13 @@ auto NativeGateDecomposer::calc_theta_max(const std::vector<struct_U3>& layer)
 }
 auto NativeGateDecomposer::transform_to_U3(
     const std::vector<SingleQubitGateRefLayer>& layers) const
-    -> std::vector<std::vector<struct_U3>> {
+    -> std::vector<std::vector<StructU3>> {
   // auto u=struct_U3({0,0,0},0);
-  std::vector<std::vector<struct_U3>> new_layers;
+  std::vector<std::vector<StructU3>> new_layers;
   for (const auto& layer : layers) {
     std::vector<std::vector<std::reference_wrapper<const qc::Operation>>> gates(
         this->nQubits_);
-    std::vector<struct_U3> new_layer;
+    std::vector<StructU3> new_layer;
     for (auto gate : layer) {
       gates[gate.get().getTargets().front()].push_back(gate);
     }
@@ -175,7 +172,7 @@ auto NativeGateDecomposer::transform_to_U3(
         }
         std::array<qc::fp, 3> angles = get_U3_angles_from_quaternion(quat);
         new_layer.emplace_back(
-            struct_U3(angles, qubit_gates[0].get().getTargets().front()));
+            StructU3(angles, qubit_gates[0].get().getTargets().front()));
       }
     }
     new_layers.push_back(new_layer);
@@ -210,10 +207,12 @@ auto NativeGateDecomposer::get_decomposition_angles(
 }
 
 auto NativeGateDecomposer::decompose(
-    const std::vector<SingleQubitGateRefLayer>& singleQubitGateLayers) const
+    const size_t nQubits,
+    const std::vector<SingleQubitGateRefLayer>& singleQubitGateLayers)
     -> std::vector<SingleQubitGateLayer> {
+  nQubits_ = nQubits;
 
-  std::vector<std::vector<struct_U3>> U3Layers =
+  std::vector<std::vector<StructU3>> U3Layers =
       transform_to_U3(singleQubitGateLayers);
   std::vector<SingleQubitGateLayer> NewSingleQubitLayers =
       std::vector<SingleQubitGateLayer>{};
