@@ -44,13 +44,15 @@ public:
                        const Config& /* unused */) {}
 
   /**
-   * Converts commonly used single qubit gates into their Quaternion
-   * representation
-   * quaternion(R_v(phi))=(cos(phi/2)*I,v0*sin(phi/2)*X,v1*sin(phi/2)*Y,v2*sin(phi/2)*Z)
-   * with X,Y,Z Pauli Matrices
+   * @brief Converts commonly used single qubit gates into their Quaternion
+   * representation.
+   * @details A single qubit gate R_v(phi) with rotation axis v=(v0,v1,v2)
+   * and rotation angle phi can be represented as a quaternion:
+   * @code quaternion(R_v(phi)) = (cos(phi/2) * I, v0 * sin(phi/2) * X, v1 *
+   * sin(phi/2) * Y, v2 * sin(phi/2) * Z)@endcode with X, Y, Z Pauli Matrices.
    * @param op a reference_wrapper to the operation to be converted
-   * @returns an array of four qc::fp values [q0,q1,q2,q3] denoting the
-   * components of the quaternion
+   * @returns an array of four `qc::fp` values `{q0, q1, q2, q3}` denoting the
+   * components of the quaternion.
    */
   static auto
   convert_gate_to_quaternion(std::reference_wrapper<const qc::Operation> op)
