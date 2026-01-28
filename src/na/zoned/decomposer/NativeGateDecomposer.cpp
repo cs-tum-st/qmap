@@ -11,7 +11,7 @@
 //
 // Created by cpsch on 11.12.2025.
 //
-#include "na/zoned/decomposer/decomposer.hpp"
+#include "na/zoned/decomposer/NativeGateDecomposer.hpp"
 
 // #include "ir/operations/StandardOperation.hpp"
 #include "ir/operations/CompoundOperation.hpp"
@@ -20,9 +20,11 @@
 #include <vector>
 
 namespace na::zoned {
-Decomposer::Decomposer(int n_qubits) { N_qubits = n_qubits; };
+NativeGateDecomposer::NativeGateDecomposer(int n_qubits) {
+  nQubits_ = n_qubits;
+};
 
-auto Decomposer::convert_gate_to_quaternion(
+auto NativeGateDecomposer::convert_gate_to_quaternion(
     std::reference_wrapper<const qc::Operation> op) -> std::array<qc::fp, 4> {
   assert(op.get().getNqubits() == 1);
   std::array<qc::fp, 4> quat{};
@@ -95,8 +97,8 @@ auto Decomposer::convert_gate_to_quaternion(
   return quat;
 }
 
-auto Decomposer::combine_quaternions(const std::array<qc::fp, 4>& q1,
-                                     const std::array<qc::fp, 4>& q2)
+auto NativeGateDecomposer::combine_quaternions(const std::array<qc::fp, 4>& q1,
+                                               const std::array<qc::fp, 4>& q2)
     -> std::array<qc::fp, 4> {
   std::array<qc::fp, 4> new_quat{};
   new_quat[0] = q1[0] * q2[0] - q1[1] * q2[1] - q1[2] * q2[2] - q1[3] * q2[3];
@@ -106,7 +108,7 @@ auto Decomposer::combine_quaternions(const std::array<qc::fp, 4>& q1,
   return new_quat;
 }
 
-auto Decomposer::get_U3_angles_from_quaternion(
+auto NativeGateDecomposer::get_U3_angles_from_quaternion(
     const std::array<qc::fp, 4>& quat) -> std::array<qc::fp, 3> {
   // TODO: Is there a prescribed eps somewhere? Else where should THIS eps be
   // defined
@@ -141,7 +143,8 @@ auto Decomposer::get_U3_angles_from_quaternion(
   return {theta, phi, lambda};
 }
 
-auto Decomposer::calc_theta_max(const std::vector<struct_U3>& layer) -> qc::fp {
+auto NativeGateDecomposer::calc_theta_max(const std::vector<struct_U3>& layer)
+    -> qc::fp {
   qc::fp theta_max = 0;
   for (auto gate : layer) {
     if (abs(gate.angles[0]) > theta_max) {
@@ -150,14 +153,14 @@ auto Decomposer::calc_theta_max(const std::vector<struct_U3>& layer) -> qc::fp {
   }
   return theta_max;
 }
-auto Decomposer::transform_to_U3(
+auto NativeGateDecomposer::transform_to_U3(
     const std::vector<SingleQubitGateRefLayer>& layers) const
     -> std::vector<std::vector<struct_U3>> {
   // auto u=struct_U3({0,0,0},0);
   std::vector<std::vector<struct_U3>> new_layers;
   for (const auto& layer : layers) {
     std::vector<std::vector<std::reference_wrapper<const qc::Operation>>> gates(
-        this->N_qubits);
+        this->nQubits_);
     std::vector<struct_U3> new_layer;
     for (auto gate : layer) {
       gates[gate.get().getTargets().front()].push_back(gate);
@@ -179,8 +182,8 @@ auto Decomposer::transform_to_U3(
   }
   return new_layers;
 }
-auto Decomposer::get_decomposition_angles(const std::array<qc::fp, 3>& angles,
-                                          qc::fp theta_max)
+auto NativeGateDecomposer::get_decomposition_angles(
+    const std::array<qc::fp, 3>& angles, qc::fp theta_max)
     -> std::array<qc::fp, 3> {
   qc::fp alpha, chi, beta;
   // U3(theta,phi_min(phi),phi_plus(lambda)->Rz(gamma_minus)GR(theta_max/2,
@@ -206,7 +209,7 @@ auto Decomposer::get_decomposition_angles(const std::array<qc::fp, 3>& angles,
   return {chi, gamma_minus, gamma_plus};
 }
 
-auto Decomposer::decompose(
+auto NativeGateDecomposer::decompose(
     const std::vector<SingleQubitGateRefLayer>& singleQubitGateLayers) const
     -> std::vector<SingleQubitGateLayer> {
 
@@ -244,7 +247,7 @@ auto Decomposer::decompose(
     std::vector<std::unique_ptr<qc::Operation>> GR_plus;
     std::vector<std::unique_ptr<qc::Operation>> GR_minus;
 
-    for (auto i = 0; i < this->N_qubits; ++i) {
+    for (auto i = 0; i < this->nQubits_; ++i) {
       GR_plus.emplace_back(
           new qc::StandardOperation(i, qc::RY, {theta_max / 2}));
       GR_minus.emplace_back(

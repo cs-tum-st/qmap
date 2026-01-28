@@ -23,7 +23,10 @@ class NativeGateDecomposer : public DecomposerBase {
     std::array<qc::fp, 3> angles;
     qc::Qubit qubit;
   };
-  size_t nQubits;
+  size_t nQubits_;
+
+  constexpr static qc::fp epsilon =
+      std::numeric_limits<qc::fp>::epsilon() * 1024;
 
 public:
   /**
