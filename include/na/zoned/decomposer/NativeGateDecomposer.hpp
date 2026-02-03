@@ -63,7 +63,7 @@ public:
    * @returns a quaternion.
    */
   static auto
-  convert_gate_to_quaternion(std::reference_wrapper<const qc::Operation> op)
+  convertGateToQuaternion(std::reference_wrapper<const qc::Operation> op)
       -> Quaternion;
   /**
    * @brief Merges the quaternions representing two gates as in a matrix
@@ -72,7 +72,7 @@ public:
    * @param q2 the second quaternion to be combined.
    * @returns an quaternion.
    */
-  static auto combine_quaternions(const Quaternion& q1, const Quaternion& q2)
+  static auto combineQuaternions(const Quaternion& q1, const Quaternion& q2)
       -> Quaternion;
   /**
    * @brief Calculates the values of the U3-gate parameters theta, phi, and
@@ -81,7 +81,7 @@ public:
    * @returns an array of three `qc::fp` values `{theta, phi, lambda}` giving
    * the U3 gate angles.
    */
-  static auto get_U3_angles_from_quaternion(const Quaternion& quat)
+  static auto getU3AnglesFromQuaternion(const Quaternion& quat)
       -> std::array<qc::fp, 3>;
 
   /**
@@ -90,7 +90,7 @@ public:
    * @param layer is a vector of U3 parameters.
    * @returns the maximal value of theta in the given layer.
    */
-  static auto calc_theta_max(const std::vector<StructU3>& layer) -> qc::fp;
+  static auto calcThetaMax(const std::vector<StructU3>& layer) -> qc::fp;
 
   /**
    * @brief Takes a vector of SingleQubitGateLayers and, for each layer,
@@ -103,7 +103,7 @@ public:
    * qubit gate layers.
    */
   [[nodiscard]] auto
-  transform_to_U3(const std::vector<SingleQubitGateRefLayer>& layers) const
+  transformToU3(const std::vector<SingleQubitGateRefLayer>& layers) const
       -> std::vector<std::vector<StructU3>>;
   /**
    * @brief Takes a vector of `qc::fp` representing the U3-gate angles of a
@@ -112,11 +112,11 @@ public:
    * et. al. 2024.
    * @param angles is a `std::array` of `qc::fp` representing (theta, phi,
    * lambda).
-   * @param theta_max the maximal theta value of the single-qubit qate layer.
+   * @param theta_max the maximal theta value of the single-qubit gate layer.
    * @returns an array of `qc::fp` values giving the angles (chi, gamma_minus,
    * gamma_plus).
    */
-  auto static get_decomposition_angles(const std::array<qc::fp, 3>& angles,
+  auto static getDecompositionAngles(const std::array<qc::fp, 3>& angles,
                                        qc::fp theta_max)
       -> std::array<qc::fp, 3>;
 

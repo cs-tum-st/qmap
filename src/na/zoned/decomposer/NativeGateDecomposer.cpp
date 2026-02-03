@@ -21,14 +21,13 @@
 
 namespace na::zoned {
 
-auto NativeGateDecomposer::convert_gate_to_quaternion(
-    std::reference_wrapper<const qc::Operation> op) -> std::array<qc::fp, 4> {
+auto NativeGateDecomposer::convertGateToQuaternion(
+    std::reference_wrapper<const qc::Operation> op) -> Quaternion {
   assert(op.get().getNqubits() == 1);
-  std::array<qc::fp, 4> quat{};
-  // TODO: Phase?
+  Quaternion quat{};
   if (op.get().getType() == qc::RZ || op.get().getType() == qc::P) {
-    quat = {cos(op.get().getParameter().front()), 0, 0,
-            sin(op.get().getParameter().front())};
+    quat = {cos(op.get().getParameter().front()/2), 0, 0,
+            sin(op.get().getParameter().front()/2)};
   } else if (op.get().getType() == qc::Z) {
     quat = {0, 0, 0, 1};
   } else if (op.get().getType() == qc::S) {
@@ -40,16 +39,16 @@ auto NativeGateDecomposer::convert_gate_to_quaternion(
   } else if (op.get().getType() == qc::Tdg) {
     quat = {cos(-qc::PI_4 / 2), 0, 0, sin(-qc::PI_4 / 2)};
   } else if (op.get().getType() == qc::U) {
-    quat = combine_quaternions(
-        combine_quaternions({cos(op.get().getParameter().at(1) / 2), 0, 0,
+    quat = combineQuaternions(
+        combineQuaternions({cos(op.get().getParameter().at(1) / 2), 0, 0,
                              sin(op.get().getParameter().at(1) / 2)},
                             {cos(op.get().getParameter().front() / 2), 0,
                              sin(op.get().getParameter().front() / 2), 0}),
         {cos(op.get().getParameter().at(2) / 2), 0, 0,
          sin(op.get().getParameter().at(2) / 2)});
   } else if (op.get().getType() == qc::U2) {
-    quat = combine_quaternions(
-        combine_quaternions({cos(op.get().getParameter().front() / 2), 0, 0,
+    quat = combineQuaternions(
+        combineQuaternions({cos(op.get().getParameter().front() / 2), 0, 0,
                              sin(op.get().getParameter().front() / 2)},
                             {cos(qc::PI_2), 0, sin(qc::PI_2), 0}),
         {cos(op.get().getParameter().at(1) / 2), 0, 0,
@@ -61,26 +60,26 @@ auto NativeGateDecomposer::convert_gate_to_quaternion(
     quat = {cos(op.get().getParameter().front() / 2), 0,
             sin(op.get().getParameter().front() / 2), 0};
   } else if (op.get().getType() == qc::H) {
-    quat = combine_quaternions(
-        combine_quaternions({1, 0, 0, 0}, {cos(qc::PI_4), 0, sin(qc::PI_4), 0}),
+    quat = combineQuaternions(
+        combineQuaternions({1, 0, 0, 0}, {cos(qc::PI_4), 0, sin(qc::PI_4), 0}),
         {cos(qc::PI_2), 0, 0, sin(qc::PI_2)});
   } else if (op.get().getType() == qc::X) {
     quat = {0, 1, 0, 0};
   } else if (op.get().getType() == qc::Y) {
-    quat = {0, 1, 0, 0};
+    quat = {0, 0, 1, 0};
   } else if (op.get().getType() == qc::Vdg) {
-    quat = combine_quaternions(
-        combine_quaternions({cos(qc::PI_4), 0, 0, sin(qc::PI_4)},
+    quat = combineQuaternions(
+        combineQuaternions({cos(qc::PI_4), 0, 0, sin(qc::PI_4)},
                             {cos(-qc::PI_4), 0, sin(-qc::PI_4), 0}),
         {cos(-qc::PI_4), 0, 0, sin(-qc::PI_4)});
   } else if (op.get().getType() == qc::SX) {
-    quat = combine_quaternions(
-        combine_quaternions({cos(-qc::PI_4), 0, 0, sin(-qc::PI_4)},
+    quat = combineQuaternions(
+        combineQuaternions({cos(-qc::PI_4), 0, 0, sin(-qc::PI_4)},
                             {cos(qc::PI_4), 0, sin(qc::PI_4), 0}),
         {cos(qc::PI_4), 0, 0, sin(qc::PI_4)});
   } else if (op.get().getType() == qc::SXdg || op.get().getType() == qc::V) {
-    quat = combine_quaternions(
-        combine_quaternions({cos(-qc::PI_4), 0, 0, sin(-qc::PI_4)},
+    quat = combineQuaternions(
+        combineQuaternions({cos(-qc::PI_4), 0, 0, sin(-qc::PI_4)},
                             {cos(-qc::PI_4), 0, sin(-qc::PI_4), 0}),
         {cos(qc::PI_4), 0, 0, sin(qc::PI_4)});
   } else {
@@ -94,10 +93,10 @@ auto NativeGateDecomposer::convert_gate_to_quaternion(
   return quat;
 }
 
-auto NativeGateDecomposer::combine_quaternions(const std::array<qc::fp, 4>& q1,
-                                               const std::array<qc::fp, 4>& q2)
-    -> std::array<qc::fp, 4> {
-  std::array<qc::fp, 4> new_quat{};
+auto NativeGateDecomposer::combineQuaternions(const Quaternion& q1,
+                                               const Quaternion& q2)
+    -> Quaternion {
+  Quaternion new_quat{};
   new_quat[0] = q1[0] * q2[0] - q1[1] * q2[1] - q1[2] * q2[2] - q1[3] * q2[3];
   new_quat[1] = q1[0] * q2[1] + q1[1] * q2[0] + q1[2] * q2[3] - q1[3] * q2[2];
   new_quat[2] = q1[0] * q2[2] - q1[1] * q2[3] + q1[2] * q2[0] + q1[3] * q2[1];
@@ -105,10 +104,8 @@ auto NativeGateDecomposer::combine_quaternions(const std::array<qc::fp, 4>& q1,
   return new_quat;
 }
 
-auto NativeGateDecomposer::get_U3_angles_from_quaternion(
-    const std::array<qc::fp, 4>& quat) -> std::array<qc::fp, 3> {
-  // TODO: Is there a prescribed eps somewhere? Else where should THIS eps be
-  // defined
+auto NativeGateDecomposer::getU3AnglesFromQuaternion(
+    const Quaternion& quat) -> std::array<qc::fp, 3> {
   qc::fp theta;
   qc::fp phi;
   qc::fp lambda;
@@ -140,7 +137,7 @@ auto NativeGateDecomposer::get_U3_angles_from_quaternion(
   return {theta, phi, lambda};
 }
 
-auto NativeGateDecomposer::calc_theta_max(const std::vector<StructU3>& layer)
+auto NativeGateDecomposer::calcThetaMax(const std::vector<StructU3>& layer)
     -> qc::fp {
   qc::fp theta_max = 0;
   for (auto gate : layer) {
@@ -150,10 +147,9 @@ auto NativeGateDecomposer::calc_theta_max(const std::vector<StructU3>& layer)
   }
   return theta_max;
 }
-auto NativeGateDecomposer::transform_to_U3(
+auto NativeGateDecomposer::transformToU3(
     const std::vector<SingleQubitGateRefLayer>& layers) const
     -> std::vector<std::vector<StructU3>> {
-  // auto u=struct_U3({0,0,0},0);
   std::vector<std::vector<StructU3>> new_layers;
   for (const auto& layer : layers) {
     std::vector<std::vector<std::reference_wrapper<const qc::Operation>>> gates(
@@ -165,12 +161,12 @@ auto NativeGateDecomposer::transform_to_U3(
 
     for (auto qubit_gates : gates) {
       if (!qubit_gates.empty()) {
-        std::array<qc::fp, 4> quat = convert_gate_to_quaternion(qubit_gates[0]);
+        std::array<qc::fp, 4> quat = convertGateToQuaternion(qubit_gates[0]);
         for (auto i = 1; i < qubit_gates.size(); i++) {
-          quat = combine_quaternions(
-              quat, convert_gate_to_quaternion(qubit_gates[i]));
+          quat = combineQuaternions(
+              quat, convertGateToQuaternion(qubit_gates[i]));
         }
-        std::array<qc::fp, 3> angles = get_U3_angles_from_quaternion(quat);
+        std::array<qc::fp, 3> angles = getU3AnglesFromQuaternion(quat);
         new_layer.emplace_back(
             StructU3(angles, qubit_gates[0].get().getTargets().front()));
       }
@@ -179,10 +175,10 @@ auto NativeGateDecomposer::transform_to_U3(
   }
   return new_layers;
 }
-auto NativeGateDecomposer::get_decomposition_angles(
+auto NativeGateDecomposer::getDecompositionAngles(
     const std::array<qc::fp, 3>& angles, qc::fp theta_max)
     -> std::array<qc::fp, 3> {
-  qc::fp alpha, chi, beta;
+  qc::fp alpha, chi;
   // U3(theta,phi_min(phi),phi_plus(lambda)->Rz(gamma_minus)GR(theta_max/2,
   // PI_2)Rz(chi)GR(-theta_max/2,PI_2)RZ(gamma_plus)
   if (abs(angles[0] - theta_max) < epsilon) {
@@ -199,7 +195,7 @@ auto NativeGateDecomposer::get_decomposition_angles(
     alpha = atan(cos(theta_max / 2) * kappa);
     chi = fmod(2 * atan(kappa), qc::TAU);
   }
-  beta = angles[0] < 0 ? -1 * qc::PI_2 : qc::PI_2;
+  qc::fp beta = angles[0] < 0 ? -1 * qc::PI_2 : qc::PI_2;
   qc::fp gamma_plus = fmod(angles[2] - (alpha + beta), qc::TAU);
   qc::fp gamma_minus = fmod(angles[1] - (alpha - beta), qc::TAU);
 
@@ -213,12 +209,12 @@ auto NativeGateDecomposer::decompose(
   nQubits_ = nQubits;
 
   std::vector<std::vector<StructU3>> U3Layers =
-      transform_to_U3(singleQubitGateLayers);
+      transformToU3(singleQubitGateLayers);
   std::vector<SingleQubitGateLayer> NewSingleQubitLayers =
       std::vector<SingleQubitGateLayer>{};
 
   for (const auto& layer : U3Layers) {
-    qc::fp theta_max = calc_theta_max(layer);
+    qc::fp theta_max = calcThetaMax(layer);
     SingleQubitGateLayer FrontLayer;
     SingleQubitGateLayer MidLayer;
     SingleQubitGateLayer BackLayer;
@@ -226,7 +222,7 @@ auto NativeGateDecomposer::decompose(
 
     for (auto gate : layer) {
       std::array<qc::fp, 3> decomp_angles =
-          get_decomposition_angles(gate.angles, theta_max);
+          getDecompositionAngles(gate.angles, theta_max);
 
       // GR(theta_max/2, PI_2)==Global Y due to PI_2
       auto sop = qc::StandardOperation(gate.qubit, qc::RZ, {decomp_angles[1]});
