@@ -69,8 +69,7 @@ TEST(Test, ThreeQuaternionCombiTest) {
                        ::testing::DoubleNear(cos(qc::PI_4), epsilon),
                        ::testing::DoubleNear(0, epsilon)));
   std::array<qc::fp, 4> q3 = {cos(qc::PI_2), 0, 0, sin(qc::PI_2)};
-  std::array<qc::fp, 4> q13 =
-      NativeGateDecomposer::combineQuaternions(q12, q3);
+  std::array<qc::fp, 4> q13 = NativeGateDecomposer::combineQuaternions(q12, q3);
   EXPECT_THAT(
       q13, ::testing::ElementsAre(::testing::DoubleNear(0, epsilon),
                                   ::testing::DoubleNear(cos(qc::PI_4), epsilon),
@@ -88,8 +87,7 @@ TEST(Test, ThreeQuaternionU3Test) {
                        ::testing::DoubleNear(0, epsilon),
                        ::testing::DoubleNear(cos(qc::PI_4 / 2), epsilon)));
   std::array<qc::fp, 4> q3 = {cos(qc::PI_4), 0, 0, sin(qc::PI_4)};
-  std::array<qc::fp, 4> q13 =
-      NativeGateDecomposer::combineQuaternions(q12, q3);
+  std::array<qc::fp, 4> q13 = NativeGateDecomposer::combineQuaternions(q12, q3);
   qc::fp r2 = 1 / sqrt(2);
   EXPECT_THAT(q13, ::testing::ElementsAre(
                        ::testing::DoubleNear(-r2 * cos(qc::PI_4 / 2), epsilon),
