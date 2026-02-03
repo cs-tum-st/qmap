@@ -117,8 +117,7 @@ public:
    * gamma_plus).
    */
   auto static getDecompositionAngles(const std::array<qc::fp, 3>& angles,
-                                       qc::fp theta_max)
-      -> std::array<qc::fp, 3>;
+                                     qc::fp theta_max) -> std::array<qc::fp, 3>;
 
   [[nodiscard]] auto
   decompose(size_t nQubits,
