@@ -26,8 +26,8 @@ auto NativeGateDecomposer::convertGateToQuaternion(
   assert(op.get().getNqubits() == 1);
   Quaternion quat{};
   if (op.get().getType() == qc::RZ || op.get().getType() == qc::P) {
-    quat = {cos(op.get().getParameter().front()/2), 0, 0,
-            sin(op.get().getParameter().front()/2)};
+    quat = {cos(op.get().getParameter().front() / 2), 0, 0,
+            sin(op.get().getParameter().front() / 2)};
   } else if (op.get().getType() == qc::Z) {
     quat = {0, 0, 0, 1};
   } else if (op.get().getType() == qc::S) {
@@ -41,16 +41,16 @@ auto NativeGateDecomposer::convertGateToQuaternion(
   } else if (op.get().getType() == qc::U) {
     quat = combineQuaternions(
         combineQuaternions({cos(op.get().getParameter().at(1) / 2), 0, 0,
-                             sin(op.get().getParameter().at(1) / 2)},
-                            {cos(op.get().getParameter().front() / 2), 0,
-                             sin(op.get().getParameter().front() / 2), 0}),
+                            sin(op.get().getParameter().at(1) / 2)},
+                           {cos(op.get().getParameter().front() / 2), 0,
+                            sin(op.get().getParameter().front() / 2), 0}),
         {cos(op.get().getParameter().at(2) / 2), 0, 0,
          sin(op.get().getParameter().at(2) / 2)});
   } else if (op.get().getType() == qc::U2) {
     quat = combineQuaternions(
         combineQuaternions({cos(op.get().getParameter().front() / 2), 0, 0,
-                             sin(op.get().getParameter().front() / 2)},
-                            {cos(qc::PI_2), 0, sin(qc::PI_2), 0}),
+                            sin(op.get().getParameter().front() / 2)},
+                           {cos(qc::PI_2), 0, sin(qc::PI_2), 0}),
         {cos(op.get().getParameter().at(1) / 2), 0, 0,
          sin(op.get().getParameter().at(1) / 2)});
   } else if (op.get().getType() == qc::RX) {
@@ -70,17 +70,17 @@ auto NativeGateDecomposer::convertGateToQuaternion(
   } else if (op.get().getType() == qc::Vdg) {
     quat = combineQuaternions(
         combineQuaternions({cos(qc::PI_4), 0, 0, sin(qc::PI_4)},
-                            {cos(-qc::PI_4), 0, sin(-qc::PI_4), 0}),
+                           {cos(-qc::PI_4), 0, sin(-qc::PI_4), 0}),
         {cos(-qc::PI_4), 0, 0, sin(-qc::PI_4)});
   } else if (op.get().getType() == qc::SX) {
     quat = combineQuaternions(
         combineQuaternions({cos(-qc::PI_4), 0, 0, sin(-qc::PI_4)},
-                            {cos(qc::PI_4), 0, sin(qc::PI_4), 0}),
+                           {cos(qc::PI_4), 0, sin(qc::PI_4), 0}),
         {cos(qc::PI_4), 0, 0, sin(qc::PI_4)});
   } else if (op.get().getType() == qc::SXdg || op.get().getType() == qc::V) {
     quat = combineQuaternions(
         combineQuaternions({cos(-qc::PI_4), 0, 0, sin(-qc::PI_4)},
-                            {cos(-qc::PI_4), 0, sin(-qc::PI_4), 0}),
+                           {cos(-qc::PI_4), 0, sin(-qc::PI_4), 0}),
         {cos(qc::PI_4), 0, 0, sin(qc::PI_4)});
   } else {
     // if the gate type is not recognized, an error is printed and the
@@ -94,7 +94,7 @@ auto NativeGateDecomposer::convertGateToQuaternion(
 }
 
 auto NativeGateDecomposer::combineQuaternions(const Quaternion& q1,
-                                               const Quaternion& q2)
+                                              const Quaternion& q2)
     -> Quaternion {
   Quaternion new_quat{};
   new_quat[0] = q1[0] * q2[0] - q1[1] * q2[1] - q1[2] * q2[2] - q1[3] * q2[3];
@@ -104,8 +104,8 @@ auto NativeGateDecomposer::combineQuaternions(const Quaternion& q1,
   return new_quat;
 }
 
-auto NativeGateDecomposer::getU3AnglesFromQuaternion(
-    const Quaternion& quat) -> std::array<qc::fp, 3> {
+auto NativeGateDecomposer::getU3AnglesFromQuaternion(const Quaternion& quat)
+    -> std::array<qc::fp, 3> {
   qc::fp theta;
   qc::fp phi;
   qc::fp lambda;
@@ -163,8 +163,8 @@ auto NativeGateDecomposer::transformToU3(
       if (!qubit_gates.empty()) {
         std::array<qc::fp, 4> quat = convertGateToQuaternion(qubit_gates[0]);
         for (auto i = 1; i < qubit_gates.size(); i++) {
-          quat = combineQuaternions(
-              quat, convertGateToQuaternion(qubit_gates[i]));
+          quat =
+              combineQuaternions(quat, convertGateToQuaternion(qubit_gates[i]));
         }
         std::array<qc::fp, 3> angles = getU3AnglesFromQuaternion(quat);
         new_layer.emplace_back(
