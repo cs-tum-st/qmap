@@ -242,7 +242,7 @@ auto NativeGateDecomposer::decompose(
     std::vector<std::unique_ptr<qc::Operation>> GR_plus;
     std::vector<std::unique_ptr<qc::Operation>> GR_minus;
 
-    for (auto i = 0; i < this->nQubits_; ++i) {
+    for (size_t i = 0; i < this->nQubits_; ++i) {
       GR_plus.emplace_back(
           new qc::StandardOperation(i, qc::RY, {theta_max / 2}));
       GR_minus.emplace_back(
