@@ -12,6 +12,7 @@
 // Created by cpsch on 11.12.2025.
 //
 #include "na/zoned/decomposer/NativeGateDecomposer.hpp"
+
 #include "ir/operations/CompoundOperation.hpp"
 
 #include <complex>
@@ -84,8 +85,8 @@ auto NativeGateDecomposer::convertGateToQuaternion(
     // if the gate type is not recognized, an error is printed and the
     // gate is not included in the output.
     std::ostringstream oss;
-    oss << "ERROR: Unsupported single-qubit gate: "
-        << op.get().getType() << "\n";
+    oss << "ERROR: Unsupported single-qubit gate: " << op.get().getType()
+        << "\n";
     throw std::invalid_argument(oss.str());
   }
   return quat;
@@ -241,11 +242,10 @@ auto NativeGateDecomposer::decompose(
     std::vector<std::unique_ptr<qc::Operation>> GR_minus;
 
     for (size_t i = 0; i < this->nQubits_; ++i) {
-      GR_plus.emplace_back(
-          std::make_unique<qc::StandardOperation>(i, qc::RY, std::initializer_list<qc::fp>{theta_max / 2}));
-      GR_minus.emplace_back(
-               std::make_unique<qc::StandardOperation>(i, qc::RY, std::initializer_list<qc::fp>{-1 * theta_max / 2}));
-
+      GR_plus.emplace_back(std::make_unique<qc::StandardOperation>(
+          i, qc::RY, std::initializer_list<qc::fp>{theta_max / 2}));
+      GR_minus.emplace_back(std::make_unique<qc::StandardOperation>(
+          i, qc::RY, std::initializer_list<qc::fp>{-1 * theta_max / 2}));
     }
 
     for (auto&& gate : FrontLayer) {
