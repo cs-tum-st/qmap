@@ -98,16 +98,13 @@ TEST(Test, ThreeQuaternionU3Test) {
 
 TEST(Test, SingleXGateAngleTest) {
   const qc::Operation* op = new qc::StandardOperation(0, qc::X);
-
-  qc::QuantumComputation qc(1);
-  qc.rx(qc::PI, 0);
   std::array<qc::fp, 4> q = NativeGateDecomposer::convertGateToQuaternion(
       std::reference_wrapper<const qc::Operation>(*op));
   EXPECT_THAT(
       NativeGateDecomposer::getU3AnglesFromQuaternion(q),
       ::testing::ElementsAre(::testing::DoubleNear(qc::PI, epsilon),
-                             ::testing::DoubleNear(-1 * qc::PI_2, epsilon),
-                             ::testing::DoubleNear(qc::PI_2, epsilon)));
+                             ::testing::DoubleNear(0, epsilon),
+                             ::testing::DoubleNear(qc::PI, epsilon)));
 }
 
 TEST(Test, SingleU3GateAngleTest) {

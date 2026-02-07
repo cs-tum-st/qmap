@@ -162,13 +162,13 @@ auto NativeGateDecomposer::transformToU3(
     for (auto qubit_gates : gates) {
       if (!qubit_gates.empty()) {
         std::array<qc::fp, 4> quat = convertGateToQuaternion(qubit_gates[0]);
-        for (auto i = 1; i < qubit_gates.size(); i++) {
+        for (size_t i = 1; i < qubit_gates.size(); i++) {
           quat =
               combineQuaternions(quat, convertGateToQuaternion(qubit_gates[i]));
         }
         std::array<qc::fp, 3> angles = getU3AnglesFromQuaternion(quat);
         new_layer.emplace_back(
-            StructU3(angles, qubit_gates[0].get().getTargets().front()));
+            StructU3{angles, qubit_gates[0].get().getTargets().front()});
       }
     }
     new_layers.push_back(new_layer);
