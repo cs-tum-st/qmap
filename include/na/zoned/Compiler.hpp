@@ -314,9 +314,9 @@ public:
 };
 
 class RoutingAwareNativeGateCompiler final
-    : public Compiler<RoutingAwareNativeGateCompiler, ASAPScheduler, NativeGateDecomposer,
-                      VertexMatchingReuseAnalyzer, RoutingAwareSynthesizer,
-                      CodeGenerator> {
+    : public Compiler<RoutingAwareNativeGateCompiler, ASAPScheduler,
+                      NativeGateDecomposer, VertexMatchingReuseAnalyzer,
+                      RoutingAwareSynthesizer, CodeGenerator> {
 public:
   RoutingAwareNativeGateCompiler(const Architecture& architecture,
                                  const Config& config)
