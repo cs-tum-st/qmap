@@ -12,8 +12,6 @@
 // Created by cpsch on 11.12.2025.
 //
 #include "na/zoned/decomposer/NativeGateDecomposer.hpp"
-
-// #include "ir/operations/StandardOperation.hpp"
 #include "ir/operations/CompoundOperation.hpp"
 
 #include <complex>
@@ -50,7 +48,7 @@ auto NativeGateDecomposer::convertGateToQuaternion(
     quat = combineQuaternions(
         combineQuaternions({cos(op.get().getParameter().front() / 2), 0, 0,
                             sin(op.get().getParameter().front() / 2)},
-                           {cos(qc::PI_2), 0, sin(qc::PI_2), 0}),
+                           {cos(qc::PI_4), 0, sin(qc::PI_4), 0}),
         {cos(op.get().getParameter().at(1) / 2), 0, 0,
          sin(op.get().getParameter().at(1) / 2)});
   } else if (op.get().getType() == qc::RX) {
@@ -86,7 +84,7 @@ auto NativeGateDecomposer::convertGateToQuaternion(
     // if the gate type is not recognized, an error is printed and the
     // gate is not included in the output.
     std::ostringstream oss;
-    oss << "\033[1;31m[ERROR]\033[0m Unsupported single-qubit gate: "
+    oss << "ERROR: Unsupported single-qubit gate: "
         << op.get().getType() << "\n";
     throw std::invalid_argument(oss.str());
   }
@@ -109,11 +107,11 @@ auto NativeGateDecomposer::getU3AnglesFromQuaternion(const Quaternion& quat)
   qc::fp theta;
   qc::fp phi;
   qc::fp lambda;
-  if (abs(quat[0]) > epsilon || abs(quat[3]) > epsilon) {
+  if (std::fabs(quat[0]) > epsilon || std::fabs(quat[3]) > epsilon) {
     theta = 2. * std::atan2(std::sqrt(quat[2] * quat[2] + quat[1] * quat[1]),
                             std::sqrt(quat[0] * quat[0] + quat[3] * quat[3]));
     qc::fp alpha_1 = std::atan2(quat[3], quat[0]); // phi+ lambda
-    if (abs(quat[1]) > epsilon || abs(quat[2]) > epsilon) {
+    if (std::fabs(quat[1]) > epsilon || std::fabs(quat[2]) > epsilon) {
       qc::fp alpha_2 = -1 * std::atan2(quat[1], quat[2]);
       phi = alpha_1 + alpha_2; // phi
       lambda = alpha_1 - alpha_2;
@@ -124,7 +122,7 @@ auto NativeGateDecomposer::getU3AnglesFromQuaternion(const Quaternion& quat)
   } else {
     theta = qc::PI; // or § PI if sin(theta/2)=-1... Relevant? Or is the -1=
                     // exp(i*pi) just global phase
-    if (abs(quat[1]) > epsilon || abs(quat[2]) > epsilon) {
+    if (std::fabs(quat[1]) > epsilon || std::fabs(quat[2]) > epsilon) {
       phi = 0;
       lambda = 2 * std::atan2(quat[1], quat[2]);
       // atan can give PI instead of 0 Problem?
@@ -141,7 +139,7 @@ auto NativeGateDecomposer::calcThetaMax(const std::vector<StructU3>& layer)
     -> qc::fp {
   qc::fp theta_max = 0;
   for (auto gate : layer) {
-    if (abs(gate.angles[0]) > theta_max) {
+    if (std::fabs(gate.angles[0]) > theta_max) {
       theta_max = abs(gate.angles[0]);
     }
   }
@@ -181,9 +179,9 @@ auto NativeGateDecomposer::getDecompositionAngles(
   qc::fp alpha, chi;
   // U3(theta,phi_min(phi),phi_plus(lambda)->Rz(gamma_minus)GR(theta_max/2,
   // PI_2)Rz(chi)GR(-theta_max/2,PI_2)RZ(gamma_plus)
-  if (abs(angles[0] - theta_max) < epsilon) {
+  if (std::fabs(angles[0] - theta_max) < epsilon) {
     chi = qc::PI;
-    if (abs(cos(theta_max / 2)) < epsilon) { // Periodicity covered?
+    if (std::fabs(cos(theta_max / 2)) < epsilon) { // Periodicity covered?
       alpha = 0;
     } else {
       alpha = qc::PI_2;
@@ -244,9 +242,10 @@ auto NativeGateDecomposer::decompose(
 
     for (size_t i = 0; i < this->nQubits_; ++i) {
       GR_plus.emplace_back(
-          new qc::StandardOperation(i, qc::RY, {theta_max / 2}));
+          std::make_unique<qc::StandardOperation>(i, qc::RY, std::initializer_list<qc::fp>{theta_max / 2}));
       GR_minus.emplace_back(
-          new qc::StandardOperation(i, qc::RY, {-1 * theta_max / 2}));
+               std::make_unique<qc::StandardOperation>(i, qc::RY, std::initializer_list<qc::fp>{-1 * theta_max / 2}));
+
     }
 
     for (auto&& gate : FrontLayer) {

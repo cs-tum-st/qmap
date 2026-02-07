@@ -57,7 +57,8 @@ protected:
         decomposer(architecture, decomposerConfig) {}
 };
 
-qc::fp epsilon = 1e-5;
+constexpr static qc::fp epsilon =
+      std::numeric_limits<qc::fp>::epsilon() * 1024;
 
 TEST(Test, ThreeQuaternionCombiTest) {
   std::array<qc::fp, 4> q1 = {cos(qc::PI_4), 0, 0, sin(qc::PI_4)};
