@@ -57,8 +57,7 @@ protected:
         decomposer(architecture, decomposerConfig) {}
 };
 
-constexpr static qc::fp epsilon =
-      std::numeric_limits<qc::fp>::epsilon() * 1024;
+constexpr static qc::fp epsilon = std::numeric_limits<qc::fp>::epsilon() * 1024;
 
 TEST(Test, ThreeQuaternionCombiTest) {
   std::array<qc::fp, 4> q1 = {cos(qc::PI_4), 0, 0, sin(qc::PI_4)};
@@ -101,11 +100,10 @@ TEST(Test, SingleXGateAngleTest) {
   const qc::Operation* op = new qc::StandardOperation(0, qc::X);
   std::array<qc::fp, 4> q = NativeGateDecomposer::convertGateToQuaternion(
       std::reference_wrapper<const qc::Operation>(*op));
-  EXPECT_THAT(
-      NativeGateDecomposer::getU3AnglesFromQuaternion(q),
-      ::testing::ElementsAre(::testing::DoubleNear(qc::PI, epsilon),
-                             ::testing::DoubleNear(0, epsilon),
-                             ::testing::DoubleNear(qc::PI, epsilon)));
+  EXPECT_THAT(NativeGateDecomposer::getU3AnglesFromQuaternion(q),
+              ::testing::ElementsAre(::testing::DoubleNear(qc::PI, epsilon),
+                                     ::testing::DoubleNear(0, epsilon),
+                                     ::testing::DoubleNear(qc::PI, epsilon)));
 }
 
 TEST(Test, SingleU3GateAngleTest) {
