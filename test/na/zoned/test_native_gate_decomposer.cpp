@@ -100,11 +100,10 @@ TEST(Test, SingleXGateAngleTest) {
   const qc::Operation* op = new qc::StandardOperation(0, qc::X);
   std::array<qc::fp, 4> q = NativeGateDecomposer::convertGateToQuaternion(
       std::reference_wrapper<const qc::Operation>(*op));
-  EXPECT_THAT(
-      NativeGateDecomposer::getU3AnglesFromQuaternion(q),
-      ::testing::ElementsAre(::testing::DoubleNear(qc::PI, epsilon),
-                             ::testing::DoubleNear(0, epsilon),
-                             ::testing::DoubleNear(qc::PI, epsilon)));
+  EXPECT_THAT(NativeGateDecomposer::getU3AnglesFromQuaternion(q),
+              ::testing::ElementsAre(::testing::DoubleNear(qc::PI, epsilon),
+                                     ::testing::DoubleNear(0, epsilon),
+                                     ::testing::DoubleNear(qc::PI, epsilon)));
 }
 
 TEST(Test, SingleU3GateAngleTest) {
