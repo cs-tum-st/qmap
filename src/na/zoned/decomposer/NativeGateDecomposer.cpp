@@ -191,7 +191,7 @@ auto NativeGateDecomposer::getDecompositionAngles(
     }
   } else {
     qc::fp kappa =
-        std::sqrt((sin(angles[0] / 2) * sin(angles[0] / 2)) /sin_sq_diff);
+        std::sqrt((sin(angles[0] / 2) * sin(angles[0] / 2)) / sin_sq_diff);
     alpha = atan(cos(theta_max / 2) * kappa);
     chi = fmod(2 * atan(kappa), qc::TAU);
   }
@@ -250,13 +250,15 @@ auto NativeGateDecomposer::decompose(
     }
 
     NewLayer.emplace_back(
-        std::move(std::make_unique<const qc::CompoundOperation>(qc::CompoundOperation(std::move(GR_plus), true))));
+        std::move(std::make_unique<const qc::CompoundOperation>(
+            qc::CompoundOperation(std::move(GR_plus), true))));
 
     for (auto&& gate : MidLayer) {
       NewLayer.push_back(std::move(gate));
     }
     NewLayer.emplace_back(
-        std::move(std::make_unique<const qc::CompoundOperation>(qc::CompoundOperation(std::move(GR_minus), true))));
+        std::move(std::make_unique<const qc::CompoundOperation>(
+            qc::CompoundOperation(std::move(GR_minus), true))));
 
     for (auto&& gate : BackLayer) {
       NewLayer.push_back(std::move(gate));
