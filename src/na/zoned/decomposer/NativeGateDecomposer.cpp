@@ -141,7 +141,7 @@ auto NativeGateDecomposer::calcThetaMax(const std::vector<StructU3>& layer)
   qc::fp theta_max = 0;
   for (auto gate : layer) {
     if (std::fabs(gate.angles[0]) > theta_max) {
-      theta_max = abs(gate.angles[0]);
+      theta_max = std::fabs(gate.angles[0]);
     }
   }
   return theta_max;
@@ -180,7 +180,8 @@ auto NativeGateDecomposer::getDecompositionAngles(
   qc::fp alpha, chi;
   // U3(theta,phi_min(phi),phi_plus(lambda)->Rz(gamma_minus)GR(theta_max/2,
   // PI_2)Rz(chi)GR(-theta_max/2,PI_2)RZ(gamma_plus)
-  if (std::fabs(angles[0] - theta_max) < epsilon) {
+  qc::fp sin_sq_diff= (sin(theta_max/2) * sin(theta_max/2) - (sin(angles[0] / 2) * sin(angles[0] / 2)));
+  if (std::fabs(sin_sq_diff) < epsilon ) {
     chi = qc::PI;
     if (std::fabs(cos(theta_max / 2)) < epsilon) { // Periodicity covered?
       alpha = 0;
@@ -188,9 +189,7 @@ auto NativeGateDecomposer::getDecompositionAngles(
       alpha = qc::PI_2;
     }
   } else {
-    qc::fp kappa = sqrt((sin(angles[0] / 2) * sin(angles[0] / 2)) /
-                        (sin(theta_max) * sin(theta_max) -
-                         (sin(angles[0] / 2) * sin(angles[0] / 2))));
+    qc::fp kappa = std::sqrt((sin(angles[0] / 2) * sin(angles[0] / 2)) /sin_sq_diff);
     alpha = atan(cos(theta_max / 2) * kappa);
     chi = fmod(2 * atan(kappa), qc::TAU);
   }
@@ -224,18 +223,11 @@ auto NativeGateDecomposer::decompose(
           getDecompositionAngles(gate.angles, theta_max);
 
       // GR(theta_max/2, PI_2)==Global Y due to PI_2
-      auto sop = qc::StandardOperation(gate.qubit, qc::RZ, {decomp_angles[1]});
-      std::unique_ptr<const qc::Operation> op =
-          std::make_unique<const qc::StandardOperation>(sop);
-      FrontLayer.emplace_back(std::move(op));
+      FrontLayer.emplace_back(std::make_unique<const qc::StandardOperation>(qc::StandardOperation(gate.qubit, qc::RZ, {decomp_angles[1]})));
 
-      sop = qc::StandardOperation(gate.qubit, qc::RZ, {decomp_angles[0]});
-      op = std::make_unique<const qc::StandardOperation>(sop);
-      MidLayer.emplace_back(std::move(op));
+      MidLayer.emplace_back(std::make_unique<const qc::StandardOperation>(qc::StandardOperation(gate.qubit, qc::RZ, {decomp_angles[0]})));
 
-      sop = qc::StandardOperation(gate.qubit, qc::RZ, {decomp_angles[2]});
-      op = std::make_unique<const qc::StandardOperation>(sop);
-      BackLayer.emplace_back(std::move(op));
+      BackLayer.emplace_back(std::make_unique<const qc::StandardOperation>(qc::StandardOperation(gate.qubit, qc::RZ, {decomp_angles[2]})));
     } // gate::layer
 
     std::vector<std::unique_ptr<qc::Operation>> GR_plus;
@@ -252,18 +244,12 @@ auto NativeGateDecomposer::decompose(
       NewLayer.push_back(std::move(gate));
     }
 
-    auto cop = qc::CompoundOperation(std::move(GR_plus), true);
-    std::unique_ptr<const qc::Operation> ryp =
-        std::make_unique<const qc::CompoundOperation>(cop);
-    NewLayer.emplace_back(std::move(ryp));
+    NewLayer.emplace_back(std::move(std::make_unique<const qc::CompoundOperation>(qc::CompoundOperation(std::move(GR_plus), true))));
 
     for (auto&& gate : MidLayer) {
       NewLayer.push_back(std::move(gate));
     }
-    cop = qc::CompoundOperation(std::move(GR_minus), true);
-    std::unique_ptr<const qc::Operation> rym =
-        std::make_unique<const qc::CompoundOperation>(cop);
-    NewLayer.emplace_back(std::move(rym));
+    NewLayer.emplace_back(std::move(std::make_unique<const qc::CompoundOperation>(qc::CompoundOperation(std::move(GR_minus), true))));
 
     for (auto&& gate : BackLayer) {
       NewLayer.push_back(std::move(gate));
