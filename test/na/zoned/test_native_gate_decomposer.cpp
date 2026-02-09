@@ -88,7 +88,7 @@ TEST(Test, ThreeQuaternionU3Test) {
                        ::testing::DoubleNear(cos(qc::PI_4 / 2), epsilon)));
   std::array<qc::fp, 4> q3 = {cos(qc::PI_4), 0, 0, sin(qc::PI_4)};
   std::array<qc::fp, 4> q13 = NativeGateDecomposer::combineQuaternions(q12, q3);
-  qc::fp r2 = 1 / sqrt(2);
+  qc::fp r2 = 1 / std::sqrt(2);
   EXPECT_THAT(q13, ::testing::ElementsAre(
                        ::testing::DoubleNear(-r2 * cos(qc::PI_4 / 2), epsilon),
                        ::testing::DoubleNear(-r2 * sin(qc::PI_4 / 2), epsilon),
@@ -249,8 +249,6 @@ TEST_F(DecomposerTest, SingleU3Gate) {
               ::testing::ElementsAre(::testing::DoubleNear(qc::PI_2, epsilon)));
 }
 
-// TEST with U3(o,?,?)
-// TEST with two Single Qubit Layers
 
 TEST_F(DecomposerTest, TwoPauliGatesOneQubit) {
   //    ┌───────┐  ┌───────┐
