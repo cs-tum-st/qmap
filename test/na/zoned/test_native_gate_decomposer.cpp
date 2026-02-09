@@ -249,7 +249,6 @@ TEST_F(DecomposerTest, SingleU3Gate) {
               ::testing::ElementsAre(::testing::DoubleNear(qc::PI_2, epsilon)));
 }
 
-
 TEST_F(DecomposerTest, TwoPauliGatesOneQubit) {
   //    ┌───────┐  ┌───────┐
   // q: ┤   X   ├──┤   Z   ├

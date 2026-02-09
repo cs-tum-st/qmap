@@ -190,8 +190,7 @@ auto NativeGateDecomposer::getDecompositionAngles(
       alpha = qc::PI_2;
     }
   } else {
-    qc::fp kappa =
-        std::sqrt((sin(angles[0] / 2) * sin(angles[0] / 2)) /sin_sq_diff);
+    qc::fp kappa = std::sqrt((sin(angles[0] / 2) * sin(angles[0] / 2)) /sin_sq_diff);
     alpha = atan(cos(theta_max / 2) * kappa);
     chi = fmod(2 * atan(kappa), qc::TAU);
   }
@@ -225,14 +224,11 @@ auto NativeGateDecomposer::decompose(
           getDecompositionAngles(gate.angles, theta_max);
 
       // GR(theta_max/2, PI_2)==Global Y due to PI_2
-      FrontLayer.emplace_back(std::make_unique<const qc::StandardOperation>(
-          qc::StandardOperation(gate.qubit, qc::RZ, {decomp_angles[1]})));
+      FrontLayer.emplace_back(std::make_unique<const qc::StandardOperation>(qc::StandardOperation(gate.qubit, qc::RZ, {decomp_angles[1]})));
 
-      MidLayer.emplace_back(std::make_unique<const qc::StandardOperation>(
-          qc::StandardOperation(gate.qubit, qc::RZ, {decomp_angles[0]})));
+      MidLayer.emplace_back(std::make_unique<const qc::StandardOperation>(qc::StandardOperation(gate.qubit, qc::RZ, {decomp_angles[0]})));
 
-      BackLayer.emplace_back(std::make_unique<const qc::StandardOperation>(
-          qc::StandardOperation(gate.qubit, qc::RZ, {decomp_angles[2]})));
+      BackLayer.emplace_back(std::make_unique<const qc::StandardOperation>(qc::StandardOperation(gate.qubit, qc::RZ, {decomp_angles[2]})));
     } // gate::layer
 
     std::vector<std::unique_ptr<qc::Operation>> GR_plus;
@@ -249,14 +245,12 @@ auto NativeGateDecomposer::decompose(
       NewLayer.push_back(std::move(gate));
     }
 
-    NewLayer.emplace_back(
-        std::move(std::make_unique<const qc::CompoundOperation>(qc::CompoundOperation(std::move(GR_plus), true))));
+    NewLayer.emplace_back(std::move(std::make_unique<const qc::CompoundOperation>(qc::CompoundOperation(std::move(GR_plus), true))));
 
     for (auto&& gate : MidLayer) {
       NewLayer.push_back(std::move(gate));
     }
-    NewLayer.emplace_back(
-        std::move(std::make_unique<const qc::CompoundOperation>(qc::CompoundOperation(std::move(GR_minus), true))));
+    NewLayer.emplace_back(std::move(std::make_unique<const qc::CompoundOperation>(qc::CompoundOperation(std::move(GR_minus), true))));
 
     for (auto&& gate : BackLayer) {
       NewLayer.push_back(std::move(gate));
