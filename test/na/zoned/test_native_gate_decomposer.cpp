@@ -169,7 +169,6 @@ TEST(Test, RXDecompositionTest) {
 
 TEST(Test, U3DecompositionTest) {
   std::array<qc::fp, 3> u3 = {qc::PI_4, qc::PI, qc::PI_2};
-  // gamm minus i - PI_" not PI_2 and game_plus is 0 not PI!!
   EXPECT_THAT(
       NativeGateDecomposer::getDecompositionAngles(u3, qc::PI_4),
       ::testing::ElementsAre(::testing::DoubleNear(qc::PI, epsilon),
