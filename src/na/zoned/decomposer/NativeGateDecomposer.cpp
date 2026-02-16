@@ -155,7 +155,10 @@ auto NativeGateDecomposer::transformToU3(
         this->nQubits_);
     std::vector<StructU3> new_layer;
     for (auto gate : layer) {
-      gates[gate.get().getTargets().front()].push_back(gate);
+      //WHat are operations with empty targets doing??
+      if (!gate.get().getTargets().empty()) {
+        gates[gate.get().getTargets().front()].push_back(gate);
+      }
     }
 
     for (auto qubit_gates : gates) {
