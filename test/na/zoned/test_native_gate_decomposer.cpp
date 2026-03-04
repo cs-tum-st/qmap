@@ -59,147 +59,209 @@ protected:
 
 constexpr static qc::fp epsilon = std::numeric_limits<qc::fp>::epsilon() * 1024;
 
-// Test Translation of : S gate, Sdg Gate, T-gate, t dg gate, U2, RY, Y, Vdg, SX, Sxdg, Unrecognized, H _>Just do them all?
+// Test Translation of : S gate, Sdg Gate, T-gate, t dg gate, U2, RY, Y, Vdg,
+// SX, Sxdg, Unrecognized, H _>Just do them all?
 
 TEST(Test, ZRotGateTranslationTest) {
 
-  qc::StandardOperation op =qc::StandardOperation(0, qc::Z);
-  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(std::reference_wrapper<const qc::Operation> (op)), ::testing::ElementsAre(
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(1, epsilon)));
+  qc::StandardOperation op = qc::StandardOperation(0, qc::Z);
+  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(
+                  std::reference_wrapper<const qc::Operation>(op)),
+              ::testing::ElementsAre(::testing::DoubleNear(0, epsilon),
+                                     ::testing::DoubleNear(0, epsilon),
+                                     ::testing::DoubleNear(0, epsilon),
+                                     ::testing::DoubleNear(1, epsilon)));
 
-   op =qc::StandardOperation(0, qc::RZ, {qc::PI_2});
-  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(std::reference_wrapper<const qc::Operation> (op)), ::testing::ElementsAre(
-                         ::testing::DoubleNear(1/std::sqrt(2), epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(1/std::sqrt(2), epsilon)));
-  op =qc::StandardOperation(0, qc::P,{qc::PI_2});
-  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(std::reference_wrapper<const qc::Operation> (op)), ::testing::ElementsAre(
-                         ::testing::DoubleNear(1/std::sqrt(2), epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(1/std::sqrt(2), epsilon)));
+  op = qc::StandardOperation(0, qc::RZ, {qc::PI_2});
+  EXPECT_THAT(
+      NativeGateDecomposer::convertGateToQuaternion(
+          std::reference_wrapper<const qc::Operation>(op)),
+      ::testing::ElementsAre(::testing::DoubleNear(1 / std::sqrt(2), epsilon),
+                             ::testing::DoubleNear(0, epsilon),
+                             ::testing::DoubleNear(0, epsilon),
+                             ::testing::DoubleNear(1 / std::sqrt(2), epsilon)));
+  op = qc::StandardOperation(0, qc::P, {qc::PI_2});
+  EXPECT_THAT(
+      NativeGateDecomposer::convertGateToQuaternion(
+          std::reference_wrapper<const qc::Operation>(op)),
+      ::testing::ElementsAre(::testing::DoubleNear(1 / std::sqrt(2), epsilon),
+                             ::testing::DoubleNear(0, epsilon),
+                             ::testing::DoubleNear(0, epsilon),
+                             ::testing::DoubleNear(1 / std::sqrt(2), epsilon)));
 
-  op =qc::StandardOperation(0, qc::S);
-  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(std::reference_wrapper<const qc::Operation> (op)), ::testing::ElementsAre(
-                         ::testing::DoubleNear(1/std::sqrt(2), epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(1/std::sqrt(2), epsilon)));
+  op = qc::StandardOperation(0, qc::S);
+  EXPECT_THAT(
+      NativeGateDecomposer::convertGateToQuaternion(
+          std::reference_wrapper<const qc::Operation>(op)),
+      ::testing::ElementsAre(::testing::DoubleNear(1 / std::sqrt(2), epsilon),
+                             ::testing::DoubleNear(0, epsilon),
+                             ::testing::DoubleNear(0, epsilon),
+                             ::testing::DoubleNear(1 / std::sqrt(2), epsilon)));
 
-  op =qc::StandardOperation(0, qc::Sdg);
-  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(std::reference_wrapper<const qc::Operation> (op)), ::testing::ElementsAre(
-                         ::testing::DoubleNear(1/std::sqrt(2), epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(-1/std::sqrt(2), epsilon)));
-  op =qc::StandardOperation(0, qc::T);
-  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(std::reference_wrapper<const qc::Operation> (op)), ::testing::ElementsAre(
-                         ::testing::DoubleNear(0.5*std::sqrt(2+std::sqrt(2)), epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(0.5*std::sqrt(2-std::sqrt(2)), epsilon)));
+  op = qc::StandardOperation(0, qc::Sdg);
+  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(
+                  std::reference_wrapper<const qc::Operation>(op)),
+              ::testing::ElementsAre(
+                  ::testing::DoubleNear(1 / std::sqrt(2), epsilon),
+                  ::testing::DoubleNear(0, epsilon),
+                  ::testing::DoubleNear(0, epsilon),
+                  ::testing::DoubleNear(-1 / std::sqrt(2), epsilon)));
+  op = qc::StandardOperation(0, qc::T);
+  EXPECT_THAT(
+      NativeGateDecomposer::convertGateToQuaternion(
+          std::reference_wrapper<const qc::Operation>(op)),
+      ::testing::ElementsAre(
+          ::testing::DoubleNear(0.5 * std::sqrt(2 + std::sqrt(2)), epsilon),
+          ::testing::DoubleNear(0, epsilon), ::testing::DoubleNear(0, epsilon),
+          ::testing::DoubleNear(0.5 * std::sqrt(2 - std::sqrt(2)), epsilon)));
 
-  op =qc::StandardOperation(0, qc::Tdg);
-  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(std::reference_wrapper<const qc::Operation> (op)), ::testing::ElementsAre(
-                         ::testing::DoubleNear(0.5*std::sqrt(2+std::sqrt(2)), epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(-0.5*std::sqrt(2-std::sqrt(2)), epsilon)));
-
-
-
+  op = qc::StandardOperation(0, qc::Tdg);
+  EXPECT_THAT(
+      NativeGateDecomposer::convertGateToQuaternion(
+          std::reference_wrapper<const qc::Operation>(op)),
+      ::testing::ElementsAre(
+          ::testing::DoubleNear(0.5 * std::sqrt(2 + std::sqrt(2)), epsilon),
+          ::testing::DoubleNear(0, epsilon), ::testing::DoubleNear(0, epsilon),
+          ::testing::DoubleNear(-0.5 * std::sqrt(2 - std::sqrt(2)), epsilon)));
 }
 
 TEST(Test, XYRotGateTranslationTest) {
-  qc::StandardOperation op =qc::StandardOperation(0, qc::X);
-  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(std::reference_wrapper<const qc::Operation> (op)), ::testing::ElementsAre(
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(1, epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(0, epsilon)));
+  qc::StandardOperation op = qc::StandardOperation(0, qc::X);
+  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(
+                  std::reference_wrapper<const qc::Operation>(op)),
+              ::testing::ElementsAre(::testing::DoubleNear(0, epsilon),
+                                     ::testing::DoubleNear(1, epsilon),
+                                     ::testing::DoubleNear(0, epsilon),
+                                     ::testing::DoubleNear(0, epsilon)));
 
-  op =qc::StandardOperation(0, qc::RX,{qc::PI_2});
+  op = qc::StandardOperation(0, qc::RX, {qc::PI_2});
 
-  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(std::reference_wrapper<const qc::Operation> (op)), ::testing::ElementsAre(
-                         ::testing::DoubleNear(1/std::sqrt(2), epsilon),
-                         ::testing::DoubleNear(1/std::sqrt(2), epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(0, epsilon)));
+  EXPECT_THAT(
+      NativeGateDecomposer::convertGateToQuaternion(
+          std::reference_wrapper<const qc::Operation>(op)),
+      ::testing::ElementsAre(::testing::DoubleNear(1 / std::sqrt(2), epsilon),
+                             ::testing::DoubleNear(1 / std::sqrt(2), epsilon),
+                             ::testing::DoubleNear(0, epsilon),
+                             ::testing::DoubleNear(0, epsilon)));
 
-  op =qc::StandardOperation(0, qc::Y);
+  op = qc::StandardOperation(0, qc::Y);
 
-  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(std::reference_wrapper<const qc::Operation> (op)), ::testing::ElementsAre(
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(1, epsilon),
-                         ::testing::DoubleNear(0, epsilon)));
+  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(
+                  std::reference_wrapper<const qc::Operation>(op)),
+              ::testing::ElementsAre(::testing::DoubleNear(0, epsilon),
+                                     ::testing::DoubleNear(0, epsilon),
+                                     ::testing::DoubleNear(1, epsilon),
+                                     ::testing::DoubleNear(0, epsilon)));
 
-  op =qc::StandardOperation(0,qc::RY,{qc::PI_2});
+  op = qc::StandardOperation(0, qc::RY, {qc::PI_2});
 
-  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(std::reference_wrapper<const qc::Operation> (op)), ::testing::ElementsAre(
-                         ::testing::DoubleNear(1/std::sqrt(2), epsilon),
-                         ::testing::DoubleNear(0, epsilon),
-                         ::testing::DoubleNear(1/std::sqrt(2), epsilon),
-                         ::testing::DoubleNear(0, epsilon)));
+  EXPECT_THAT(
+      NativeGateDecomposer::convertGateToQuaternion(
+          std::reference_wrapper<const qc::Operation>(op)),
+      ::testing::ElementsAre(::testing::DoubleNear(1 / std::sqrt(2), epsilon),
+                             ::testing::DoubleNear(0, epsilon),
+                             ::testing::DoubleNear(1 / std::sqrt(2), epsilon),
+                             ::testing::DoubleNear(0, epsilon)));
 
-  op =qc::StandardOperation(0, qc::SX);
+  op = qc::StandardOperation(0, qc::SX);
 
-  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(std::reference_wrapper<const qc::Operation> (op)), ::testing::ElementsAre(
-                        ::testing::DoubleNear(1/std::sqrt(2), epsilon),
-                        ::testing::DoubleNear(1/std::sqrt(2), epsilon),
-                        ::testing::DoubleNear(0, epsilon),
-                        ::testing::DoubleNear(0, epsilon)));
+  EXPECT_THAT(
+      NativeGateDecomposer::convertGateToQuaternion(
+          std::reference_wrapper<const qc::Operation>(op)),
+      ::testing::ElementsAre(::testing::DoubleNear(1 / std::sqrt(2), epsilon),
+                             ::testing::DoubleNear(1 / std::sqrt(2), epsilon),
+                             ::testing::DoubleNear(0, epsilon),
+                             ::testing::DoubleNear(0, epsilon)));
 
-  op =qc::StandardOperation(0, qc::SXdg);
+  op = qc::StandardOperation(0, qc::SXdg);
 
-  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(std::reference_wrapper<const qc::Operation> (op)), ::testing::ElementsAre(
-                        ::testing::DoubleNear(1/std::sqrt(2), epsilon),
-                        ::testing::DoubleNear(-1/std::sqrt(2), epsilon),
-                        ::testing::DoubleNear(0, epsilon),
-                        ::testing::DoubleNear(0, epsilon)));
-
-
+  EXPECT_THAT(
+      NativeGateDecomposer::convertGateToQuaternion(
+          std::reference_wrapper<const qc::Operation>(op)),
+      ::testing::ElementsAre(::testing::DoubleNear(1 / std::sqrt(2), epsilon),
+                             ::testing::DoubleNear(-1 / std::sqrt(2), epsilon),
+                             ::testing::DoubleNear(0, epsilon),
+                             ::testing::DoubleNear(0, epsilon)));
 }
 
 TEST(Test, UGateTranslationTest) {
-  qc::fp p=qc::PI_2;
-  qc::fp t=qc::PI_4;
-  qc::fp l=qc::PI_4;
-  qc::StandardOperation op =qc::StandardOperation(0, qc::U,{t,p,l});
-  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(std::reference_wrapper<const qc::Operation> (op)), ::testing::ElementsAre(
-                         ::testing::DoubleNear((std::cos(p/2)*std::cos(t/2)*std::cos(l/2))-(std::sin(p/2)*std::cos(t/2)*std::sin(l/2)), epsilon),
-                         ::testing::DoubleNear(std::cos(p/2)*std::sin(t/2)*std::sin(l/2)-std::sin(p/2)*std::cos(l/2)*std::sin(t/2), epsilon),
-                         ::testing::DoubleNear(std::cos(p/2)*std::sin(t/2)*std::cos(l/2)+std::sin(p/2)*std::sin(l/2)*std::sin(t/2), epsilon),
-                         ::testing::DoubleNear(std::cos(p/2)*std::cos(t/2)*std::sin(l/2)+std::sin(p/2)*std::cos(l/2)*std::cos(t/2), epsilon)));
+  qc::fp p = qc::PI_2;
+  qc::fp t = qc::PI_4;
+  qc::fp l = qc::PI_4;
+  qc::StandardOperation op = qc::StandardOperation(0, qc::U, {t, p, l});
+  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(
+                  std::reference_wrapper<const qc::Operation>(op)),
+              ::testing::ElementsAre(
+                  ::testing::DoubleNear(
+                      (std::cos(p / 2) * std::cos(t / 2) * std::cos(l / 2)) -
+                          (std::sin(p / 2) * std::cos(t / 2) * std::sin(l / 2)),
+                      epsilon),
+                  ::testing::DoubleNear(
+                      std::cos(p / 2) * std::sin(t / 2) * std::sin(l / 2) -
+                          std::sin(p / 2) * std::cos(l / 2) * std::sin(t / 2),
+                      epsilon),
+                  ::testing::DoubleNear(
+                      std::cos(p / 2) * std::sin(t / 2) * std::cos(l / 2) +
+                          std::sin(p / 2) * std::sin(l / 2) * std::sin(t / 2),
+                      epsilon),
+                  ::testing::DoubleNear(
+                      std::cos(p / 2) * std::cos(t / 2) * std::sin(l / 2) +
+                          std::sin(p / 2) * std::cos(l / 2) * std::cos(t / 2),
+                      epsilon)));
 
-  t=qc::PI_2;
-  op =qc::StandardOperation(0, qc::U2,{p,l});
-  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(std::reference_wrapper<const qc::Operation> (op)), ::testing::ElementsAre(
-                       ::testing::DoubleNear((std::cos(p/2)*std::cos(t/2)*std::cos(l/2))-(std::sin(p/2)*std::cos(t/2)*std::sin(l/2)), epsilon),
-                       ::testing::DoubleNear(std::cos(p/2)*std::sin(t/2)*std::sin(l/2)-std::sin(p/2)*std::cos(l/2)*std::sin(t/2), epsilon),
-                       ::testing::DoubleNear(std::cos(p/2)*std::sin(t/2)*std::cos(l/2)+std::sin(p/2)*std::sin(l/2)*std::sin(t/2), epsilon),
-                       ::testing::DoubleNear(std::cos(p/2)*std::cos(t/2)*std::sin(l/2)+std::sin(p/2)*std::cos(l/2)*std::cos(t/2), epsilon)));
+  t = qc::PI_2;
+  op = qc::StandardOperation(0, qc::U2, {p, l});
+  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(
+                  std::reference_wrapper<const qc::Operation>(op)),
+              ::testing::ElementsAre(
+                  ::testing::DoubleNear(
+                      (std::cos(p / 2) * std::cos(t / 2) * std::cos(l / 2)) -
+                          (std::sin(p / 2) * std::cos(t / 2) * std::sin(l / 2)),
+                      epsilon),
+                  ::testing::DoubleNear(
+                      std::cos(p / 2) * std::sin(t / 2) * std::sin(l / 2) -
+                          std::sin(p / 2) * std::cos(l / 2) * std::sin(t / 2),
+                      epsilon),
+                  ::testing::DoubleNear(
+                      std::cos(p / 2) * std::sin(t / 2) * std::cos(l / 2) +
+                          std::sin(p / 2) * std::sin(l / 2) * std::sin(t / 2),
+                      epsilon),
+                  ::testing::DoubleNear(
+                      std::cos(p / 2) * std::cos(t / 2) * std::sin(l / 2) +
+                          std::sin(p / 2) * std::cos(l / 2) * std::cos(t / 2),
+                      epsilon)));
 
-  t=-1*qc::PI_2;
-  l=-1*qc::PI_2;
+  t = -1 * qc::PI_2;
+  l = -1 * qc::PI_2;
 
-  op =qc::StandardOperation(0, qc::Vdg);
-  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(std::reference_wrapper<const qc::Operation> (op)), ::testing::ElementsAre(
-                       ::testing::DoubleNear((std::cos(p/2)*std::cos(t/2)*std::cos(l/2))-(std::sin(p/2)*std::cos(t/2)*std::sin(l/2)), epsilon),
-                       ::testing::DoubleNear(std::cos(p/2)*std::sin(t/2)*std::sin(l/2)-std::sin(p/2)*std::cos(l/2)*std::sin(t/2), epsilon),
-                       ::testing::DoubleNear(std::cos(p/2)*std::sin(t/2)*std::cos(l/2)+std::sin(p/2)*std::sin(l/2)*std::sin(t/2), epsilon),
-                       ::testing::DoubleNear(std::cos(p/2)*std::cos(t/2)*std::sin(l/2)+std::sin(p/2)*std::cos(l/2)*std::cos(t/2), epsilon)));
-  op =qc::StandardOperation(0, qc::H);
-  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(std::reference_wrapper<const qc::Operation> (op)), ::testing::ElementsAre(
-                          ::testing::DoubleNear(0, epsilon),
-                          ::testing::DoubleNear(1/std::sqrt(2), epsilon),
-                          ::testing::DoubleNear(0, epsilon),
-                          ::testing::DoubleNear(1/std::sqrt(2), epsilon)));
-
+  op = qc::StandardOperation(0, qc::Vdg);
+  EXPECT_THAT(NativeGateDecomposer::convertGateToQuaternion(
+                  std::reference_wrapper<const qc::Operation>(op)),
+              ::testing::ElementsAre(
+                  ::testing::DoubleNear(
+                      (std::cos(p / 2) * std::cos(t / 2) * std::cos(l / 2)) -
+                          (std::sin(p / 2) * std::cos(t / 2) * std::sin(l / 2)),
+                      epsilon),
+                  ::testing::DoubleNear(
+                      std::cos(p / 2) * std::sin(t / 2) * std::sin(l / 2) -
+                          std::sin(p / 2) * std::cos(l / 2) * std::sin(t / 2),
+                      epsilon),
+                  ::testing::DoubleNear(
+                      std::cos(p / 2) * std::sin(t / 2) * std::cos(l / 2) +
+                          std::sin(p / 2) * std::sin(l / 2) * std::sin(t / 2),
+                      epsilon),
+                  ::testing::DoubleNear(
+                      std::cos(p / 2) * std::cos(t / 2) * std::sin(l / 2) +
+                          std::sin(p / 2) * std::cos(l / 2) * std::cos(t / 2),
+                      epsilon)));
+  op = qc::StandardOperation(0, qc::H);
+  EXPECT_THAT(
+      NativeGateDecomposer::convertGateToQuaternion(
+          std::reference_wrapper<const qc::Operation>(op)),
+      ::testing::ElementsAre(::testing::DoubleNear(0, epsilon),
+                             ::testing::DoubleNear(1 / std::sqrt(2), epsilon),
+                             ::testing::DoubleNear(0, epsilon),
+                             ::testing::DoubleNear(1 / std::sqrt(2), epsilon)));
 }
 
 TEST(Test, ThreeQuaternionCombiTest) {
@@ -336,7 +398,7 @@ TEST_F(DecomposerTest, SingleRXGate) {
   //    ┌───────┐
   // q: ┤ Rx(π) ├
   //    └───────┘
-  int n = 1;
+  size_t n = 1;
   qc::QuantumComputation qc(n);
   qc.rx(qc::PI, 0);
   const auto& sched = scheduler.schedule(qc);
@@ -365,7 +427,7 @@ TEST_F(DecomposerTest, SingleU3Gate) {
   //    ┌─────────────┐
   // q: ┤ U3(0,π,π/2) ├
   //    └─────────────┘
-  int n = 1;
+  size_t n = 1;
   qc::QuantumComputation qc(n);
   qc.u(0.0, qc::PI, qc::PI_2, 0);
   const auto& sched = scheduler.schedule(qc);
