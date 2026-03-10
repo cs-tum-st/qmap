@@ -248,12 +248,12 @@ auto NativeGateDecomposer::decompose(
       NewLayer.push_back(std::move(gate));
     }
 
-    NewLayer.emplace_back(std::move(std::make_unique<const qc::CompoundOperation>(qc::CompoundOperation(std::move(GR_plus), true))));
+    NewLayer.emplace_back(std::make_unique<const qc::CompoundOperation>(qc::CompoundOperation(std::move(GR_plus), true)));
 
     for (auto&& gate : MidLayer) {
       NewLayer.push_back(std::move(gate));
     }
-    NewLayer.emplace_back(std::move(std::make_unique<const qc::CompoundOperation>(qc::CompoundOperation(std::move(GR_minus), true))));
+    NewLayer.emplace_back(std::make_unique<const qc::CompoundOperation>(qc::CompoundOperation(std::move(GR_minus), true)));
 
     for (auto&& gate : BackLayer) {
       NewLayer.push_back(std::move(gate));
