@@ -50,6 +50,22 @@ public:
                           Config& /* unused */) {}
   };
 
+private:
+  /**
+   * @brief Takes a vector of SingleQubitGateLayers and, for each layer,
+   * transforms all gates into U3 gates represented by `StructU3` objects.
+   * @details It combines all gates acting on the same qubit into a single U3
+   * gate.
+   * @param layers is a std::vector of SingleQubitGateLayers of a scheduled
+   * circuit.
+   * @returns a vector of vectors of StructU3 objects representing the single
+   * qubit gate layers.
+   */
+  [[nodiscard]] auto
+  transformToU3(const std::vector<SingleQubitGateRefLayer>& layers) const
+      -> std::vector<std::vector<StructU3>>;
+
+public:
   /// Create a new NativeGateDecomposer.
   NativeGateDecomposer(const Architecture& /* unused */,
                        const Config& /* unused */) {}
@@ -94,19 +110,6 @@ public:
    */
   static auto calcThetaMax(const std::vector<StructU3>& layer) -> qc::fp;
 
-  /**
-   * @brief Takes a vector of SingleQubitGateLayers and, for each layer,
-   * transforms all gates into U3 gates represented by `StructU3` objects.
-   * @details It combines all gates acting on the same qubit into a single U3
-   * gate.
-   * @param layers is a std::vector of SingleQubitGateLayers of a scheduled
-   * circuit.
-   * @returns a vector of vectors of StructU3 objects representing the single
-   * qubit gate layers.
-   */
-  [[nodiscard]] auto
-  transformToU3(const std::vector<SingleQubitGateRefLayer>& layers) const
-      -> std::vector<std::vector<StructU3>>;
   /**
    * @brief Takes a vector of `qc::fp` representing the U3-gate angles of a
    * single-qubit gate and the maximal value of theta for the single qubit gate
