@@ -20,21 +20,29 @@ namespace na::zoned {
 auto NativeGateDecomposer::convertGateToQuaternion(
     const std::reference_wrapper<const qc::Operation> op) -> Quaternion {
   assert(op.get().getNqubits() == 1);
-  Quaternion quat{};
-  if (op.get().getType() == qc::RZ || op.get().getType() == qc::P) {
+  Quaternion quat;
+  switch (op.get().getType()) {
+  case qc::RZ:
+  case qc::P:
     quat = {cos(op.get().getParameter().front() / 2), 0, 0,
             sin(op.get().getParameter().front() / 2)};
-  } else if (op.get().getType() == qc::Z) {
+    break;
+  case qc::Z:
     quat = {0, 0, 0, 1};
-  } else if (op.get().getType() == qc::S) {
+    break;
+  case qc::S:
     quat = {cos(qc::PI_4), 0, 0, sin(qc::PI_4)};
-  } else if (op.get().getType() == qc::Sdg) {
+    break;
+  case qc::Sdg:
     quat = {cos(-qc::PI_4), 0, 0, sin(-qc::PI_4)};
-  } else if (op.get().getType() == qc::T) {
+    break;
+  case qc::T:
     quat = {cos(qc::PI_4 / 2), 0, 0, sin(qc::PI_4 / 2)};
-  } else if (op.get().getType() == qc::Tdg) {
+    break;
+  case qc::Tdg:
     quat = {cos(-qc::PI_4 / 2), 0, 0, sin(-qc::PI_4 / 2)};
-  } else if (op.get().getType() == qc::U) {
+    break;
+  case qc::U:
     quat = combineQuaternions(
         combineQuaternions({cos(op.get().getParameter().at(1) / 2), 0, 0,
                             sin(op.get().getParameter().at(1) / 2)},
@@ -42,43 +50,54 @@ auto NativeGateDecomposer::convertGateToQuaternion(
                             sin(op.get().getParameter().front() / 2), 0}),
         {cos(op.get().getParameter().at(2) / 2), 0, 0,
          sin(op.get().getParameter().at(2) / 2)});
-  } else if (op.get().getType() == qc::U2) {
+    break;
+  case qc::U2:
     quat = combineQuaternions(
         combineQuaternions({cos(op.get().getParameter().front() / 2), 0, 0,
                             sin(op.get().getParameter().front() / 2)},
                            {cos(qc::PI_4), 0, sin(qc::PI_4), 0}),
         {cos(op.get().getParameter().at(1) / 2), 0, 0,
          sin(op.get().getParameter().at(1) / 2)});
-  } else if (op.get().getType() == qc::RX) {
+    break;
+  case qc::RX:
     quat = {cos(op.get().getParameter().front() / 2),
             sin(op.get().getParameter().front() / 2), 0, 0};
-  } else if (op.get().getType() == qc::RY) {
+    break;
+  case qc::RY:
     quat = {cos(op.get().getParameter().front() / 2), 0,
             sin(op.get().getParameter().front() / 2), 0};
-  } else if (op.get().getType() == qc::H) {
+    break;
+  case qc::H:
     quat = combineQuaternions(
         combineQuaternions({1, 0, 0, 0}, {cos(qc::PI_4), 0, sin(qc::PI_4), 0}),
         {cos(qc::PI_2), 0, 0, sin(qc::PI_2)});
-  } else if (op.get().getType() == qc::X) {
+    break;
+  case qc::X:
     quat = {0, 1, 0, 0};
-  } else if (op.get().getType() == qc::Y) {
+    break;
+  case qc::Y:
     quat = {0, 0, 1, 0};
-  } else if (op.get().getType() == qc::Vdg) {
+    break;
+  case qc::Vdg:
     quat = combineQuaternions(
         combineQuaternions({cos(qc::PI_4), 0, 0, sin(qc::PI_4)},
                            {cos(-qc::PI_4), 0, sin(-qc::PI_4), 0}),
         {cos(-qc::PI_4), 0, 0, sin(-qc::PI_4)});
-  } else if (op.get().getType() == qc::SX) {
+    break;
+  case qc::SX:
     quat = combineQuaternions(
         combineQuaternions({cos(-qc::PI_4), 0, 0, sin(-qc::PI_4)},
                            {cos(qc::PI_4), 0, sin(qc::PI_4), 0}),
         {cos(qc::PI_4), 0, 0, sin(qc::PI_4)});
-  } else if (op.get().getType() == qc::SXdg || op.get().getType() == qc::V) {
+    break;
+  case qc::SXdg:
+  case qc::V:
     quat = combineQuaternions(
         combineQuaternions({cos(-qc::PI_4), 0, 0, sin(-qc::PI_4)},
                            {cos(-qc::PI_4), 0, sin(-qc::PI_4), 0}),
         {cos(qc::PI_4), 0, 0, sin(qc::PI_4)});
-  } else {
+    break;
+  default:
     // if the gate type is not recognized, an error is printed and the
     // gate is not included in the output.
     std::ostringstream oss;
