@@ -11,12 +11,17 @@ This project adheres to [Semantic Versioning], with the exception that minor rel
 
 _If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#unreleased)._
 
+## [3.6.0] - 2026-02-24
+
+_If you are upgrading: please see [`UPGRADING.md`](UPGRADING.md#360)._
+
 ### Added
 
 - ✨ Add a (no-op) decomposer component to the zoned neutral atom compiler ([#902]) ([**@ystade**])
 
 ### Changed
 
+- ⬆️ Update `spdlog` to version 1.17.0 ([#921]) ([**@denialhaag**])
 - ⬆️ Update `mqt-core` to version 3.4.1 ([#924]) ([**@denialhaag**])
 - ⬆️ Update `nanobind` to version 2.11.0 ([#924]) ([**@denialhaag**])
 - 🔧 Replace `mypy` with `ty` ([#912]) ([**@denialhaag**])
@@ -175,7 +180,8 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 
 <!-- Version links -->
 
-[unreleased]: https://github.com/munich-quantum-toolkit/qmap/compare/v3.5.0...HEAD
+[unreleased]: https://github.com/munich-quantum-toolkit/qmap/compare/v3.6.0...HEAD
+[3.6.0]: https://github.com/munich-quantum-toolkit/qmap/releases/tag/v3.6.0
 [3.5.0]: https://github.com/munich-quantum-toolkit/qmap/releases/tag/v3.5.0
 [3.4.0]: https://github.com/munich-quantum-toolkit/qmap/releases/tag/v3.4.0
 [3.3.1]: https://github.com/munich-quantum-toolkit/qmap/releases/tag/v3.3.1
@@ -191,6 +197,7 @@ _📚 Refer to the [GitHub Release Notes] for previous changelogs._
 <!-- PR links -->
 
 [#924]: https://github.com/munich-quantum-toolkit/qmap/pull/924
+[#921]: https://github.com/munich-quantum-toolkit/qmap/pull/921
 [#916]: https://github.com/munich-quantum-toolkit/qmap/pull/916
 [#912]: https://github.com/munich-quantum-toolkit/qmap/pull/912
 [#911]: https://github.com/munich-quantum-toolkit/qmap/pull/911
