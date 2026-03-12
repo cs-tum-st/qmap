@@ -8,16 +8,11 @@
  * Licensed under the MIT License
  */
 
-//
-// Created by cpsch on 16.12.2025.
-//
-
 #include "ir/QuantumComputation.hpp"
 #include "na/zoned/decomposer/NativeGateDecomposer.hpp"
 #include "na/zoned/scheduler/ASAPScheduler.hpp"
 
 #include <gmock/gmock-matchers.h>
-#include <gmock/gmock-more-matchers.h>
 #include <gtest/gtest.h>
 #include <utility>
 #include <vector>

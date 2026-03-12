@@ -8,9 +8,6 @@
  * Licensed under the MIT License
  */
 
-//
-// Created by cpsch on 11.12.2025.
-//
 #include "na/zoned/decomposer/NativeGateDecomposer.hpp"
 
 #include "ir/operations/CompoundOperation.hpp"
