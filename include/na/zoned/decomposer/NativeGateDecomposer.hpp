@@ -34,6 +34,8 @@ class NativeGateDecomposer : public DecomposerBase {
   using Quaternion = std::array<qc::fp, 4>;
   size_t nQubits_ = 0;
 
+  /// Tolerance for floating-point comparisons, scaled to account for
+  /// accumulated rounding errors in quaternion arithmetic (~10 bits margin).
   constexpr static qc::fp epsilon =
       std::numeric_limits<qc::fp>::epsilon() * 1024;
 
