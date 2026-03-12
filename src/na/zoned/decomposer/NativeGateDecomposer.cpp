@@ -18,7 +18,7 @@
 namespace na::zoned {
 
 auto NativeGateDecomposer::convertGateToQuaternion(
-    std::reference_wrapper<const qc::Operation> op) -> Quaternion {
+    const std::reference_wrapper<const qc::Operation> op) -> Quaternion {
   assert(op.get().getNqubits() == 1);
   Quaternion quat{};
   if (op.get().getType() == qc::RZ || op.get().getType() == qc::P) {
