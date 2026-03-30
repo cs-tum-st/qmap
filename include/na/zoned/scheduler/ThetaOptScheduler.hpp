@@ -38,32 +38,45 @@ public:
 
   template <class T> class DiGraph {
     std::size_t nodes;
-    std::vector<std::vector<std::size_t>> adjacencies_;
+    //Add pedecessors???
+    std::vector<std::vector<std::pair<std::size_t,double>>> adjacencies_;
     std::vector<T> node_values_;
 
   public:
     DiGraph() {
       nodes = 0;
-      adjacencies_ = std::vector<std::vector<std::size_t>>();
+      adjacencies_ = std::vector<std::vector<std::pair<std::size_t,double>>>();
       node_values_ = std::vector<T>();
     }
     std::size_t add_Node(T node) {
-      adjacencies_.push_back(std::vector<std::size_t>());
-      node_values_.push_back(node);
+      adjacencies_.push_back(std::vector<std::pair<std::size_t,double>>());
+      node_values_.push_back(std::move(node));
       return nodes++;
     }
-    bool add_Edge(std::size_t from, std::size_t to) {
+    bool add_Edge(std::size_t from, std::size_t to, double weight) {
       // TODO: Cycle Check
       if (from < nodes && to < nodes && from != to) {
-        adjacencies_[from].push_back(to);
+        adjacencies_[from].push_back(std::pair<std::size_t,std::size_t>(to,weight));
         return true;
       } else {
         return false;
       }
     }
-    T get_Node_Value(std::size_t node) {
-      if (node > nodes) {
-        return node_values_.at(node);
+
+    bool add_Edge(std::size_t from, std::size_t to) {
+      // TODO: Cycle Check
+      if (from < nodes && to < nodes && from != to) {
+        adjacencies_[from].push_back(std::pair<std::size_t,std::size_t>(to,1.0));
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    T* get_Node_Value(std::size_t node) {
+      if (node < nodes) {
+        return &node_values_[node];
+        //return node_values_.at(node);
       } else {
         std::ostringstream oss;
         oss << "ERROR: Node Number out of range: " << node << "\n";
@@ -71,7 +84,11 @@ public:
       }
     }
     std::size_t get_N_Nodes() const { return nodes; }
-    DiGraph<T> topographicSort(DiGraph<T> graph) {
+
+    std::vector<std::pair<std::size_t,double>> get_adjacent(std::size_t i) const {
+      return adjacencies_.at(i);
+    }
+    static DiGraph<T> topographicSort(DiGraph<T> graph) {
       // TODO: Topographic Sort
       return graph;
     }
@@ -79,7 +96,7 @@ public:
 
 private:
   /// The configuration of the ThetaOptScheduler
-  Config config_;
+  ASAPScheduler::Config config_;
 
 public:
   /**
@@ -95,6 +112,31 @@ public:
   preprocess_qc(const qc::QuantumComputation& qc,
                 const Architecture& architecture,
                 ASAPScheduler::Config config) const;
+  static std::vector<std::pair<std::array<std::vector<size_t>, 4>, qc::fp>>
+  get_possible_moments(DiGraph<std::unique_ptr<const qc::Operation>>& circuit,
+                       const std::vector<size_t>& v0_c,
+                       const std::array<std::vector<size_t>, 3>& v_new);
+  static qc::fp max_theta(DiGraph<std::unique_ptr<const qc::Operation>>& circuit,
+                   const std::vector<unsigned long long>& nodes);
+  static std::array<std::vector<size_t>,3> sift(DiGraph<std::unique_ptr<const qc::Operation>>& circuit,
+       size_t n_qubits);
+  std::pair<std::vector<SingleQubitGateLayer>,
+                 std::vector<TwoQubitGateLayer>> build_schedule(DiGraph<std::unique_ptr<const qc::Operation>>& circuit,
+                 DiGraph<std::pair<std::vector<size_t>, std::vector<size_t>>>&
+                     subproblem_graph) const;
+
+  static auto add_node_to_sub_prob_graph(
+      std::vector<size_t> v_p, std::vector<size_t> v_c, qc::fp cost,
+      DiGraph<std::pair<std::vector<size_t>, std::vector<size_t>>>&
+          subproblem_graph,
+      size_t prev_node) -> size_t;
+
+  static double schedule_remaining(
+      const std::array<std::vector<size_t>, 3>& v,
+      DiGraph<std::unique_ptr<const qc::Operation>>& circuit,
+      DiGraph<std::pair<std::vector<size_t>, std::vector<size_t>>>&
+          subproblem_graph,
+      size_t prev_node, size_t n_qubits);
   /**
    * This function schedules the operations of a quantum computation.
    * @details
