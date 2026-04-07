@@ -31,7 +31,9 @@ public:
    */
   [[nodiscard]] virtual auto
   decompose(size_t nQubits,
-            const std::vector<SingleQubitGateRefLayer>& singleQubitGateLayers)
-      -> std::vector<SingleQubitGateLayer> = 0;
+            const std::pair<std::vector<SingleQubitGateRefLayer>,
+                            std::vector<TwoQubitGateLayer>>& asap_schedule)
+      -> std::pair<std::vector<SingleQubitGateLayer>,
+                   std::vector<TwoQubitGateLayer>> = 0;
 };
 } // namespace na::zoned

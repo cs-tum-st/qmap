@@ -33,6 +33,7 @@ class NativeGateDecomposer : public DecomposerBase {
    */
   using Quaternion = std::array<qc::fp, 4>;
   size_t nQubits_ = 0;
+  bool theta_opt_schedule = false;
 
   constexpr static qc::fp epsilon =
       std::numeric_limits<qc::fp>::epsilon() * 1024;
@@ -49,6 +50,7 @@ public:
   };
 
   /// Create a new NativeGateDecomposer.
+  // TODO: Add in BOOL for scheduling here?
   NativeGateDecomposer(const Architecture& /* unused */,
                        const Config& /* unused */) {}
 
@@ -121,8 +123,156 @@ public:
 
   [[nodiscard]] auto
   decompose(size_t nQubits,
-            const std::vector<SingleQubitGateRefLayer>& singleQubitGateLayers)
-      -> std::vector<SingleQubitGateLayer> override;
+            const std::pair<std::vector<SingleQubitGateRefLayer>,
+                            std::vector<TwoQubitGateLayer>>& asap_schedule)
+      -> std::pair<std::vector<SingleQubitGateLayer>,
+                   std::vector<TwoQubitGateLayer>> override;
+  static auto NativeGateDecomposer::preprocess(
+      const std::pair<std::vector<std::vector<StructU3>>,
+                      std::vector<TwoQubitGateLayer>>& schedule)
+      -> std::pair<std::vector<SingleQubitGateLayer>,
+                   std::vector<SingleQubitGateLayer>>;
+
+  template <class T> class DiGraph {
+    std::size_t nodes;
+    std::vector<std::vector<std::pair<std::size_t, double>>> adjacencies_;
+    std::vector<T> node_values_;
+
+  public:
+    DiGraph() {
+      nodes = 0;
+      adjacencies_ = std::vector<std::vector<std::pair<std::size_t, double>>>();
+      node_values_ = std::vector<T>();
+    }
+    std::size_t add_Node(T node) {
+      adjacencies_.push_back(std::vector<std::pair<std::size_t, double>>());
+      node_values_.push_back(std::move(node));
+      return nodes++;
+    }
+    bool add_Edge(std::size_t from, std::size_t to, double weight) {
+      if (from < nodes && to < nodes && from != to) {
+        adjacencies_[from].push_back(
+            std::pair<std::size_t, std::size_t>(to, weight));
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    bool add_Edge(std::size_t from, std::size_t to) {
+      if (from < nodes && to < nodes && from != to) {
+        adjacencies_[from].push_back(
+            std::pair<std::size_t, std::size_t>(to, 1.0));
+        return true;
+      } else {
+        return false;
+      }
+    }
+
+    T* get_Node_Value(std::size_t node) {
+      if (node < nodes) {
+        return &node_values_[node];
+        // return node_values_.at(node);
+      } else {
+        std::ostringstream oss;
+        oss << "ERROR: Node Number out of range: " << node << "\n";
+        throw std::invalid_argument(oss.str());
+      }
+    }
+    std::size_t get_N_Nodes() const { return nodes; }
+
+    std::vector<std::pair<std::size_t, double>>
+    get_adjacent(std::size_t i) const {
+      return adjacencies_.at(i);
+    }
+  };
+
+  static static auto NativeGateDecomposer::convert_circ_to_dag(
+      std::pair<std::vector<SingleQubitGateLayer>,
+                std::vector<SingleQubitGateLayer>>& qc)
+      -> NativeGateDecomposer::DiGraph<std::unique_ptr<const qc::Operation>>;
+
+  static std::pair<std::vector<size_t>, double> shortest_path_to_start(
+      const DiGraph<std::pair<std::vector<size_t>, std::vector<size_t>>>&
+          subproblem_graph,
+      unsigned long long curr_node, std::set<size_t> leaf_nodes);
+  static std::vector<size_t> find_shortest_path(
+      const DiGraph<std::pair<std::vector<std::size_t>,
+                              std::vector<std::size_t>>>& di_graph,
+      const std::vector<std::size_t>& vector);
+  static double
+  calc_cost(std::vector<std::vector<size_t>>::const_reference path,
+            DiGraph<std::pair<std::vector<size_t>, std::vector<size_t>>>&
+                subproblem_graph);
+  static std::vector<std::size_t> find_leaf_nodes(
+      DiGraph<std::unique_ptr<const qc::Operation>>& circuit,
+      const DiGraph<std::pair<std::vector<std::size_t>,
+                              std::vector<std::size_t>>>& subproblem_graph);
+  static std::vector<std::size_t>
+  sort_by_theta_dec(DiGraph<std::unique_ptr<const qc::Operation>>& circuit,
+                    const std::vector<unsigned long long>& vector);
+  static std::vector<std::size_t>
+  remove_element(const std::vector<std::size_t>& vector, std::size_t node);
+  static std::vector<std::pair<std::array<std::vector<size_t>, 4>, qc::fp>>
+  get_possible_moments(DiGraph<std::unique_ptr<const qc::Operation>>& circuit,
+                       const std::vector<size_t>& v0_c,
+                       const std::array<std::vector<size_t>, 3>& v_new);
+  static std::pair<std::vector<std::vector<StructU3>>,
+                   std::vector<TwoQubitGateLayer>>
+      postprocess(std::pair<std::vector<SingleQubitGateLayer>,
+                            std::vector<TwoQubitGateLayer>>);
+  static qc::fp
+  max_theta(DiGraph<std::unique_ptr<const qc::Operation>>& circuit,
+            const std::vector<unsigned long long>& nodes);
+  static std::array<std::vector<size_t>, 3>
+  sift(DiGraph<std::unique_ptr<const qc::Operation>>& circuit, size_t n_qubits);
+
+  static auto NativeGateDecomposer::build_schedule(
+      DiGraph<std::unique_ptr<const qc::Operation>>& circuit,
+      DiGraph<std::pair<std::vector<std::size_t>, std::vector<std::size_t>>>&
+          subproblem_graph) -> std::pair<std::vector<SingleQubitGateLayer>,
+                                         std::vector<TwoQubitGateLayer>>;
+
+  static auto add_node_to_sub_prob_graph(
+      std::vector<size_t> v_p, std::vector<size_t> v_c, qc::fp cost,
+      DiGraph<std::pair<std::vector<size_t>, std::vector<size_t>>>&
+          subproblem_graph,
+      size_t prev_node) -> size_t;
+
+  static double schedule_remaining(
+      const std::array<std::vector<size_t>, 3>& v,
+      DiGraph<std::unique_ptr<const qc::Operation>>& circuit,
+      DiGraph<std::pair<std::vector<size_t>, std::vector<size_t>>>&
+          subproblem_graph,
+      size_t prev_node, size_t n_qubits,
+      std::map<size_t, std::pair<size_t, std::array<double, 2>>>& memo);
+  /**
+   * This function schedules the operations of a quantum computation.
+   * @details
+   * @param qc is the quantum computation
+   * @return a pair of two vectors. The first vector contains the layers of
+   * single-qubit operations. The second vector contains the layers of two-qubit
+   * operations. A pair of qubits represents every two-qubit operation.
+   */
+  auto NativeGateDecomposer::schedule(
+      const std::pair<std::vector<std::vector<StructU3>>,
+                      std::vector<TwoQubitGateLayer>>& asap_schedule) const
+      -> std::pair<std::vector<std::vector<StructU3>>,
+                   std::vector<TwoQubitGateLayer>>;
+};
+} // namespace na::zoned
+
+template <> struct std::hash<std::array<std::vector<std::size_t>, 3>> {
+  std::size_t operator()(
+      const std::array<std::vector<std::size_t>, 3>& array) const noexcept {
+    std::size_t seed = 0U;
+    for (auto v : array) {
+      for (auto node : v) {
+        qc::hashCombine(seed, std::hash<std::size_t>{}(node));
+      }
+    }
+    return seed;
+  }
 };
 
-} // namespace na::zoned
+
