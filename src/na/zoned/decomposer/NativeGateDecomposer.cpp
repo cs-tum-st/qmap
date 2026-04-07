@@ -215,8 +215,7 @@ auto NativeGateDecomposer::decompose(
   std::vector<std::vector<StructU3>> U3Layers =
       transformToU3(asap_schedule.first);
   std::vector<TwoQubitGateLayer> NewTwoQubitGateLayers = asap_schedule.second;
-  if (theta_opt_schedule) {
-    // TODO: Put in scheduling function here
+  if (this->theta_opt_schedule) {
     auto thetaOptSchedule =
         schedule(std::pair(U3Layers, NewTwoQubitGateLayers));
     U3Layers = thetaOptSchedule.first;
@@ -303,15 +302,13 @@ auto NativeGateDecomposer::preprocess(
     }
     NewTwoQubitLayers.push_back(std::move((NewLayer)));
   }
-  return std::pair<std::vector<SingleQubitGateLayer>,
-                   std::vector<SingleQubitGateLayer>>(
-      std::move(NewSingleQubitLayers), std::move(NewTwoQubitLayers));
+  return {std::move(NewSingleQubitLayers), std::move(NewTwoQubitLayers)};
 }
 
-std::vector<size_t> NativeGateDecomposer::find_shortest_path(
+auto NativeGateDecomposer::find_shortest_path(
     const DiGraph<std::pair<std::vector<std::size_t>,
                             std::vector<std::size_t>>>& subproblem_graph,
-    const std::vector<std::size_t>& leaf_nodes) {
+    const std::vector<std::size_t>& leaf_nodes) -> std::vector<size_t> {
   std::set<std::size_t> leafs =
       std::set<std::size_t>(leaf_nodes.begin(), leaf_nodes.end());
   std::pair<std::vector<std::size_t>, double> leaf_path =
@@ -319,7 +316,8 @@ std::vector<size_t> NativeGateDecomposer::find_shortest_path(
   std::reverse(leaf_path.first.begin(), leaf_path.first.end());
   return leaf_path.first;
 }
-bool disjunct(const std::set<size_t>& set1, const std::set<size_t>& set2) {
+auto disjunct(const std::set<size_t>& set1, const std::set<size_t>& set2)
+    -> bool {
   for (auto elem : set1) {
     if (set2.contains(elem)) {
       return false;

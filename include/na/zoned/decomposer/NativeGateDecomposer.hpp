@@ -54,6 +54,14 @@ public:
   NativeGateDecomposer(const Architecture& /* unused */,
                        const Config& /* unused */) {}
 
+  /// Create a new NativeGateDecomposer with option to toggle theta opt schedule
+  /// adjustments
+  /// @param theta_opt: If true: Theta Opt Scheduling is performed
+  NativeGateDecomposer(const Architecture& /* unused */,
+                       const Config& /* unused */, bool theta_opt) {
+    theta_opt_schedule = theta_opt;
+  }
+
   /**
    * @brief Converts commonly used single qubit gates into their Quaternion
    * representation.
