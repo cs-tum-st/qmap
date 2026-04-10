@@ -401,25 +401,25 @@ TEST_F(DecomposerTest, SingleRXGate) {
   size_t n = 1;
   qc::QuantumComputation qc(n);
   qc.rx(qc::PI, 0);
-  const auto& sched = scheduler.schedule(qc);
-  auto decomp = decomposer.decompose(qc.getNqubits(), sched.first);
-  EXPECT_EQ(decomp.size(), 1);
-  EXPECT_EQ(decomp[0].size(), 5);
-  EXPECT_EQ(decomp[0][0]->getType(), qc::RZ);
-  EXPECT_THAT(decomp[0][0]->getTargets(), ::testing::ElementsAre(0));
-  EXPECT_THAT(decomp[0][0]->getParameter(),
+  const auto& schedule = scheduler.schedule(qc);
+  auto decomp = decomposer.decompose(qc.getNqubits(), schedule);
+  EXPECT_EQ(decomp.first.size(), 1);
+  EXPECT_EQ(decomp.first[0].size(), 5);
+  EXPECT_EQ(decomp.first[0][0]->getType(), qc::RZ);
+  EXPECT_THAT(decomp.first[0][0]->getTargets(), ::testing::ElementsAre(0));
+  EXPECT_THAT(decomp.first[0][0]->getParameter(),
               ::testing::ElementsAre(::testing::DoubleNear(qc::PI_2, epsilon)));
-  EXPECT_TRUE(decomp[0][1]->isCompoundOperation());
-  EXPECT_TRUE(decomp[0][1]->isGlobal(n));
-  EXPECT_EQ(decomp[0][2]->getType(), qc::RZ);
-  EXPECT_THAT(decomp[0][2]->getTargets(), ::testing::ElementsAre(0));
-  EXPECT_THAT(decomp[0][2]->getParameter(),
+  EXPECT_TRUE(decomp.first[0][1]->isCompoundOperation());
+  EXPECT_TRUE(decomp.first[0][1]->isGlobal(n));
+  EXPECT_EQ(decomp.first[0][2]->getType(), qc::RZ);
+  EXPECT_THAT(decomp.first[0][2]->getTargets(), ::testing::ElementsAre(0));
+  EXPECT_THAT(decomp.first[0][2]->getParameter(),
               ::testing::ElementsAre(::testing::DoubleNear(qc::PI, epsilon)));
-  EXPECT_TRUE(decomp[0][3]->isCompoundOperation());
-  EXPECT_TRUE(decomp[0][3]->isGlobal(n));
-  EXPECT_EQ(decomp[0][4]->getType(), qc::RZ);
-  EXPECT_THAT(decomp[0][4]->getTargets(), ::testing::ElementsAre(0));
-  EXPECT_THAT(decomp[0][4]->getParameter(),
+  EXPECT_TRUE(decomp.first[0][3]->isCompoundOperation());
+  EXPECT_TRUE(decomp.first[0][3]->isGlobal(n));
+  EXPECT_EQ(decomp.first[0][4]->getType(), qc::RZ);
+  EXPECT_THAT(decomp.first[0][4]->getTargets(), ::testing::ElementsAre(0));
+  EXPECT_THAT(decomp.first[0][4]->getParameter(),
               ::testing::ElementsAre(::testing::DoubleNear(qc::PI_2, epsilon)));
 }
 
@@ -431,25 +431,25 @@ TEST_F(DecomposerTest, SingleU3Gate) {
   qc::QuantumComputation qc(n);
   qc.u(0.0, qc::PI, qc::PI_2, 0);
   const auto& sched = scheduler.schedule(qc);
-  auto decomp = decomposer.decompose(qc.getNqubits(), sched.first);
-  EXPECT_EQ(decomp.size(), 1);
-  EXPECT_EQ(decomp[0].size(), 5);
+  auto decomp = decomposer.decompose(qc.getNqubits(), sched);
+  EXPECT_EQ(decomp.first.size(), 1);
+  EXPECT_EQ(decomp.first[0].size(), 5);
 
-  EXPECT_EQ(decomp[0][0]->getType(), qc::RZ);
-  EXPECT_THAT(decomp[0][0]->getTargets(), ::testing::ElementsAre(0));
-  EXPECT_THAT(decomp[0][0]->getParameter(),
+  EXPECT_EQ(decomp.first[0][0]->getType(), qc::RZ);
+  EXPECT_THAT(decomp.first[0][0]->getTargets(), ::testing::ElementsAre(0));
+  EXPECT_THAT(decomp.first[0][0]->getParameter(),
               ::testing::ElementsAre(::testing::DoubleNear(0, epsilon)));
-  EXPECT_TRUE(decomp[0][1]->isCompoundOperation());
-  EXPECT_TRUE(decomp[0][1]->isGlobal(n));
-  EXPECT_EQ(decomp[0][2]->getType(), qc::RZ);
-  EXPECT_THAT(decomp[0][2]->getTargets(), ::testing::ElementsAre(0));
-  EXPECT_THAT(decomp[0][2]->getParameter(),
+  EXPECT_TRUE(decomp.first[0][1]->isCompoundOperation());
+  EXPECT_TRUE(decomp.first[0][1]->isGlobal(n));
+  EXPECT_EQ(decomp.first[0][2]->getType(), qc::RZ);
+  EXPECT_THAT(decomp.first[0][2]->getTargets(), ::testing::ElementsAre(0));
+  EXPECT_THAT(decomp.first[0][2]->getParameter(),
               ::testing::ElementsAre(::testing::DoubleNear(qc::PI, epsilon)));
-  EXPECT_TRUE(decomp[0][3]->isCompoundOperation());
-  EXPECT_TRUE(decomp[0][3]->isGlobal(n));
-  EXPECT_EQ(decomp[0][4]->getType(), qc::RZ);
-  EXPECT_THAT(decomp[0][4]->getTargets(), ::testing::ElementsAre(0));
-  EXPECT_THAT(decomp[0][4]->getParameter(),
+  EXPECT_TRUE(decomp.first[0][3]->isCompoundOperation());
+  EXPECT_TRUE(decomp.first[0][3]->isGlobal(n));
+  EXPECT_EQ(decomp.first[0][4]->getType(), qc::RZ);
+  EXPECT_THAT(decomp.first[0][4]->getTargets(), ::testing::ElementsAre(0));
+  EXPECT_THAT(decomp.first[0][4]->getParameter(),
               ::testing::ElementsAre(::testing::DoubleNear(qc::PI_2, epsilon)));
 }
 
@@ -462,26 +462,26 @@ TEST_F(DecomposerTest, TwoPauliGatesOneQubit) {
   qc.x(0);
   qc.z(0);
   const auto& sched = scheduler.schedule(qc);
-  auto decomp = decomposer.decompose(qc.getNqubits(), sched.first);
+  auto decomp = decomposer.decompose(qc.getNqubits(), sched);
 
-  EXPECT_EQ(decomp.size(), 1);
-  EXPECT_EQ(decomp[0].size(), 5);
-  EXPECT_EQ(decomp[0][0]->getType(), qc::RZ);
-  EXPECT_THAT(decomp[0][0]->getTargets(), ::testing::ElementsAre(0));
-  EXPECT_THAT(decomp[0][0]->getParameter(),
+  EXPECT_EQ(decomp.first.size(), 1);
+  EXPECT_EQ(decomp.first[0].size(), 5);
+  EXPECT_EQ(decomp.first[0][0]->getType(), qc::RZ);
+  EXPECT_THAT(decomp.first[0][0]->getTargets(), ::testing::ElementsAre(0));
+  EXPECT_THAT(decomp.first[0][0]->getParameter(),
               ::testing::ElementsAre(::testing::DoubleNear(qc::PI_2, epsilon)));
-  EXPECT_TRUE(decomp[0][1]->isCompoundOperation());
-  EXPECT_TRUE(decomp[0][1]->isGlobal(n));
-  EXPECT_EQ(decomp[0][2]->getType(), qc::RZ);
-  EXPECT_THAT(decomp[0][2]->getTargets(), ::testing::ElementsAre(0));
-  EXPECT_THAT(decomp[0][2]->getParameter(),
+  EXPECT_TRUE(decomp.first[0][1]->isCompoundOperation());
+  EXPECT_TRUE(decomp.first[0][1]->isGlobal(n));
+  EXPECT_EQ(decomp.first[0][2]->getType(), qc::RZ);
+  EXPECT_THAT(decomp.first[0][2]->getTargets(), ::testing::ElementsAre(0));
+  EXPECT_THAT(decomp.first[0][2]->getParameter(),
               ::testing::ElementsAre(::testing::DoubleNear(qc::PI, epsilon)));
-  EXPECT_TRUE(decomp[0][3]->isCompoundOperation());
-  EXPECT_TRUE(decomp[0][3]->isGlobal(n));
-  EXPECT_EQ(decomp[0][4]->getType(), qc::RZ);
-  EXPECT_THAT(decomp[0][4]->getTargets(), ::testing::ElementsAre(0));
+  EXPECT_TRUE(decomp.first[0][3]->isCompoundOperation());
+  EXPECT_TRUE(decomp.first[0][3]->isGlobal(n));
+  EXPECT_EQ(decomp.first[0][4]->getType(), qc::RZ);
+  EXPECT_THAT(decomp.first[0][4]->getTargets(), ::testing::ElementsAre(0));
   EXPECT_THAT(
-      decomp[0][4]->getParameter(),
+      decomp.first[0][4]->getParameter(),
       ::testing::ElementsAre(::testing::DoubleNear(3 * qc::PI_2, epsilon)));
 }
 
@@ -498,7 +498,7 @@ TEST_F(DecomposerTest, TwoPauliGatesTwoQubits) {
   qc.x(0);
   qc.z(1);
   const auto& sched = scheduler.schedule(qc);
-  auto decomp = decomposer.decompose(qc.getNqubits(), sched.first);
+  auto decomp = decomposer.decompose(qc.getNqubits(), sched).first;
   EXPECT_EQ(decomp.size(), 1);
   EXPECT_EQ(decomp[0].size(), 8);
 
@@ -554,7 +554,7 @@ TEST_F(DecomposerTest, TwoQubitsTwoLayers) {
   qc.z(0);
   qc.x(1);
   const auto& sched = scheduler.schedule(qc);
-  auto decomp = decomposer.decompose(qc.getNqubits(), sched.first);
+  auto decomp = decomposer.decompose(qc.getNqubits(), sched).first;
   EXPECT_EQ(decomp.size(), 2);
   EXPECT_EQ(decomp[0].size(), 5);
   EXPECT_EQ(decomp[1].size(), 8);

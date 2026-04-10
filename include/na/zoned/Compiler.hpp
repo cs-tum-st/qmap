@@ -21,6 +21,7 @@
 #include "layout_synthesizer/placer/VertexMatchingPlacer.hpp"
 #include "layout_synthesizer/router/IndependentSetRouter.hpp"
 #include "na/NAComputation.hpp"
+#include "qdmi/devices/sc/Generator.hpp"
 #include "reuse_analyzer/VertexMatchingReuseAnalyzer.hpp"
 #include "scheduler/ASAPScheduler.hpp"
 
@@ -204,7 +205,8 @@ public:
     SPDLOG_DEBUG("Decomposing...");
     const auto decomposingStart = std::chrono::system_clock::now();
     const auto& decomposedSingleQubitGateLayers =
-        SELF.decompose(qComp.getNqubits(), singleQubitGateLayers);
+        SELF.decompose(qComp.getNqubits(), schedule).first;
+    // TODO: How to deal with two Qubit layers
     const auto decomposingEnd = std::chrono::system_clock::now();
     statistics_.decomposingTime =
         std::chrono::duration_cast<std::chrono::microseconds>(decomposingEnd -

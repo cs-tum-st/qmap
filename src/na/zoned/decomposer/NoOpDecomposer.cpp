@@ -19,11 +19,13 @@
 namespace na::zoned {
 auto NoOpDecomposer::decompose(
     size_t /* unused */,
-    const std::vector<SingleQubitGateRefLayer>& singleQubitGateLayers)
-    -> std::vector<SingleQubitGateLayer> {
+    const std::pair<std::vector<SingleQubitGateRefLayer>,
+                    std::vector<TwoQubitGateLayer>>& asap_schedule)
+    -> std::pair<std::vector<SingleQubitGateLayer>,
+                 std::vector<TwoQubitGateLayer>> {
   std::vector<SingleQubitGateLayer> result;
-  result.reserve(singleQubitGateLayers.size());
-  for (const auto& layer : singleQubitGateLayers) {
+  result.reserve(asap_schedule.first.size());
+  for (const auto& layer : asap_schedule.first) {
     SingleQubitGateLayer newLayer;
     newLayer.reserve(layer.size());
     for (const auto& opRef : layer) {
@@ -31,6 +33,6 @@ auto NoOpDecomposer::decompose(
     }
     result.emplace_back(std::move(newLayer));
   }
-  return result;
+  return {std::move(result), asap_schedule.second};
 }
 } // namespace na::zoned
