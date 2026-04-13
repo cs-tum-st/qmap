@@ -10,12 +10,10 @@
 
 #pragma once
 
-#include "DecomposerBase.hpp"
-#include "ir/operations/StandardOperation.hpp"
-#include "na/zoned/Compiler.hpp"
 #include "na/zoned/Types.hpp"
-
+#include "na/zoned/decomposer/DecomposerBase.hpp"
 #include <vector>
+#include <variant>
 
 namespace na::zoned {
 
@@ -28,12 +26,12 @@ class NativeGateDecomposer : public DecomposerBase {
   using Quaternion = std::array<qc::fp, 4>;
   size_t nQubits_ = 0;
 
+  ///A value to use as a margin of error for float equality
   constexpr static qc::fp epsilon =
       std::numeric_limits<qc::fp>::epsilon() * 1024;
 
 public:
   /// The configuration of the NativeGateDecomposer
-  /// TODO:: ADD Theta_opt option (and check last?))
   struct Config {
     bool theta_opt_schedule = false;
     bool check_final_cond = false;
@@ -56,7 +54,6 @@ private:
 
 public:
   /// Create a new NativeGateDecomposer.
-  // TODO: Add in BOOL for scheduling here?
   NativeGateDecomposer(const Architecture& /* unused */,
                        const Config& /* unused */) {}
 
@@ -114,11 +111,12 @@ public:
   transformToU3(const std::vector<SingleQubitGateRefLayer>& layers,
                 size_t n_qubits) -> std::vector<std::vector<StructU3>>;
   /**
-   * @brief Takes a vector of `qc::fp` representing the U3-gate angles of a
+   * @brief Calculates the decomposition angles of a U3 gate
+   * @details Takes a vector of `qc::fp` representing the U3-gate angles of a
    * single-qubit gate and the maximal value of theta for the single qubit gate
    * layer and calculates the transversal decomposition angles as in Nottingham
    * et. al. 2024.
-   * @param angles is a `std::array` of `qc::fp` representing (theta, phi,
+   * @param angles  `std::array` of `qc::fp` representing (theta, phi,
    * lambda).
    * @param theta_max the maximal theta value of the single-qubit gate layer.
    * @returns an array of `qc::fp` values giving the angles (chi, gamma_minus,
@@ -127,31 +125,67 @@ public:
   auto static getDecompositionAngles(const std::array<qc::fp, 3>& angles,
                                      qc::fp theta_max) -> std::array<qc::fp, 3>;
 
+  /**
+  * @brief Decomposes a given schedule of operations into the native gate set
+  *       and, if theta_opt_scheduling is selected re-schedules them to minimize
+  *       the total global rotation angle theta across the circuit
+  * @details
+  * @param nQubits the number of Qubits in the scheduled circuit
+  * @param schedule a pair of vectors containing SingleQubitGateRefLayers
+  *       and TwoQubitGateLayers
+  * @returns a pair of vectors containing SingleQubitLayers and TwoQubitLayers
+  *         representing the decomposed (and rescheduled) circuit
+  */
   [[nodiscard]] auto
   decompose(size_t nQubits,
             const std::pair<std::vector<SingleQubitGateRefLayer>,
-                            std::vector<TwoQubitGateLayer>>& asap_schedule)
+                            std::vector<TwoQubitGateLayer>>& schedule)
       -> std::pair<std::vector<SingleQubitGateLayer>,
                    std::vector<TwoQubitGateLayer>> override;
 
+  /**
+ * @class A class implementing a simple DiGraph for use in the scheduling
+ *        component of the native gate decomposer.
+ * @tparam T , the type of object associated with each node
+ */
   template <class T> class DiGraph {
-    std::size_t nodes;
+    ///number of nodes in the graph
+    std::size_t node_number;
+    /// a vector containing the adjacency lists of each node
     std::vector<std::vector<std::pair<std::size_t, double>>> adjacencies_;
+    /// a vector containing the values associated with each node
     std::vector<T> node_values_;
 
   public:
+ /**
+ * @brief Creates an empty graph to hold objects of type T
+ */
     DiGraph() {
-      nodes = 0;
+      node_number = 0;
       adjacencies_ = std::vector<std::vector<std::pair<std::size_t, double>>>();
       node_values_ = std::vector<T>();
     }
+
+ /**
+ * @brief Adds a node with given value to the graph
+ * @param node the type T value to be added to the graph
+ * @returns the node index of the created node
+ */
     auto add_Node(T node) -> std::size_t {
       adjacencies_.emplace_back();
       node_values_.push_back(std::move(node));
-      return nodes++;
+      return node_number++;
     }
+
+ /**
+ * @brief Adds an edge between two nodes to the graph with given weight
+ * @param from index of the node from which the edge originates
+ * @param to index of the node the edge is going to
+ * @param weight the weight of the edge
+ * @returns a bool indicating if adding the edge was successful
+ */
     auto add_Edge(std::size_t from, std::size_t to, double weight) -> bool {
-      if (from < nodes && to < nodes && from != to) {
+      if (from < node_number && to < node_number && from != to) {
         adjacencies_[from].emplace_back(
             std::pair<std::size_t, std::size_t>(to, weight));
         return true;
@@ -160,8 +194,14 @@ public:
       }
     }
 
+ /**
+ * @brief Adds an edge between two nodes to the graph (weight 1.0)
+ * @param from index of the node from which the edge originates
+ * @param to index of the node the edge is going to
+ * @returns a bool indicating if adding the edge was successful
+ */
     auto add_Edge(std::size_t from, std::size_t to) -> bool {
-      if (from < nodes && to < nodes && from != to) {
+      if (from < node_number && to < node_number && from != to) {
         adjacencies_[from].emplace_back(
             std::pair<std::size_t, std::size_t>(to, 1.0));
         return true;
@@ -170,67 +210,183 @@ public:
       }
     }
 
+    /**
+ * @brief Gets the value of a given node
+ * @param node the node index of a node in the graph
+ * @returns an object of type T contained in the given node
+ */
     auto get_Node_Value(std::size_t node) -> T {
-      if (node < nodes) {
+      if (node < node_number) {
         return node_values_[node];
-        // return node_values_.at(node);
       } else {
         std::ostringstream oss;
         oss << "ERROR: Node Number out of range: " << node << "\n";
         throw std::invalid_argument(oss.str());
       }
     }
-    [[nodiscard]] auto get_N_Nodes() const -> std::size_t { return nodes; }
 
-    [[nodiscard]] auto get_adjacent(std::size_t i) const
+ /**
+ * @brief A function which returns the size/number of nodes of the graph
+ * @returns the number of nodes in the graph
+ */
+    [[nodiscard]] auto size() const -> std::size_t { return node_number; }
+
+ /**
+ * @brief Returns the successor nodes of a given node
+ * @param node the index of a node in the graph
+ * @returns a vector containing the node indices of all nodes the passed node
+ * has outgoing edges to.
+ */
+    [[nodiscard]] auto get_adjacent(std::size_t node) const
         -> std::vector<std::pair<std::size_t, double>> {
-      return adjacencies_.at(i);
+      return adjacencies_.at(node);
     }
   };
-
+  /**
+  * @brief converts a schedule of operations into a directional acyclic graph,
+  *        where each operation is a node and each edge represents a dependency
+  * @details A circuit made up of U3-Gates (represented by layers of StructU3's)
+  *         and CZ-Gates (represented by layers of two element arrays denoting
+  *         control and target qubits) is transformed into a graph modeling the
+  *         circuit and operational dependencies.
+  *         Each node contains a std::variant containing either a StructU3 or
+  *         an array representing a CZ-Gate.
+  *         Edges between nodes mean that the destination node is dependent
+  *         on the source node (e.g. that the operation of the source node must
+  *         be executed before the one of the destination node).
+  * @param schedule a pair of vectors containing layers of StructU3's representing
+  *       U3-Gates and TwoQubitGateLayers
+  * @param nQubits the number of Qubits in the scheduled circuit
+  * @returns a DiGraph consisting of nodes containing either a StructU3
+  *         representation of U3-Gates of an array representation of CZ Gates.
+  */
   static auto
   convert_circ_to_dag(const std::pair<std::vector<std::vector<StructU3>>,
-                                      std::vector<TwoQubitGateLayer>>& qc,
-                      size_t n_qubits)
+                      std::vector<TwoQubitGateLayer>>& schedule,size_t nQubits)
       -> DiGraph<std::variant<StructU3, std::array<qc::Qubit, 2>>>;
-
+  /**
+  * @brief Recursively finds the shortest path to the start node of the
+  *       subproblem graph from a set of leaf nodes.
+  * @details
+  * @param subproblem_graph the subproblem graph to find the path in
+  * @param current_node the node of the current function call
+  * @param leaf_nodes a set of nodes with no outgoing edges (aka. leaf nodes)
+  * @returns a pair made up of a vector of the indices making up the shortest
+  *         path and the path's total cost (the sum of the maximal theta angles
+  *         of each moment)
+  */
   static auto shortest_path_to_start(
       const DiGraph<std::pair<std::vector<size_t>, std::vector<size_t>>>&
           subproblem_graph,
-      unsigned long long curr_node, const std::set<size_t>& leaf_nodes)
+      std::size_t current_node, const std::set<size_t>& leaf_nodes)
       -> std::pair<std::vector<size_t>, double>;
+
+  /**
+  * @brief Finds the shortest (fewest edges) and cheapest (lowest cost) path
+  * from the start node to a leaf node in a subproblem_graph
+  * @details
+  * @param subproblem_graph the subproblem graph
+  * @param path a vector containing the indices of all leaf nodes of the graph
+  * @returns a vector containing the node inidces of the shortest path through
+  *         the graph
+  */
   static auto find_shortest_path(
       const DiGraph<std::pair<std::vector<std::size_t>,
-                              std::vector<std::size_t>>>& di_graph,
-      const std::vector<std::size_t>& vector) -> std::vector<size_t>;
-  static auto
-  calc_cost(std::vector<std::vector<size_t>>::const_reference path,
-            const DiGraph<std::pair<std::vector<size_t>, std::vector<size_t>>>&
-                subproblem_graph) -> double;
+                              std::vector<std::size_t>>>& subproblem_graph,
+      const std::vector<std::size_t>& path) -> std::vector<size_t>;
+
+
+  /**
+ * @brief Finds the leaf nodes (Nodes with no outgoing edges) of a subproblem graph
+ * @details
+ * @param subproblem_graph the subproblem graph
+ * @returns a vectr of node indices for the leaf nodes
+ */
   static auto find_leaf_nodes(
       const DiGraph<std::pair<std::vector<std::size_t>,
                               std::vector<std::size_t>>>& subproblem_graph)
       -> std::vector<std::size_t>;
+
+  /**
+ * @brief Removes all copies of an element from a vector
+ * @param vector the vector of std::size_t to remove the element from
+ * @param elem the element to be removed from the vector
+ * @returns the vector without the element
+ */
   static auto remove_element(const std::vector<std::size_t>& vector,
-                             std::size_t node) -> std::vector<std::size_t>;
+                             std::size_t elem) -> std::vector<std::size_t>;
+
+  /**
+ * @brief Returns all plausible subsets of the current moments to be scheduled
+ * @details
+ * @param circuit the graph representation of the quantum circuit
+ * @param v0_c a vector containing the node indices of the current set of
+ *        single Qubit operations
+ * @param v_new =[v_p1,v_c1, v_rem] an array containing vectors holding the node
+ *        indices of the next set of two Qubit operations (v_p), single Qubit
+ *        operations (v_c) and all remaining operations (v_rem)
+ * @param check_final_cond a bool deciding whether to check for a strict cost
+ *        reduction
+ * @returns a vector holding pairs of the possible next moments to be scheduled
+ *          [v_c0, v_p1,vc1,v_rem] and the moments associated
+ */
   static auto get_possible_moments(
       DiGraph<std::variant<StructU3, std::array<qc::Qubit, 2>>>& circuit,
       const std::vector<size_t>& v0_c,
       const std::array<std::vector<size_t>, 3>& v_new, bool check_final_cond)
       -> std::vector<std::pair<std::array<std::vector<size_t>, 4>, qc::fp>>;
+
+  /**
+ * @brief Finds the maximal value of the angle theta among the given set of nodes
+ * @param circuit the passed circuit graph containing operations
+ * @param nodes a vector of node indices for which to find the maximal theta
+ * @returns the maximal theta value
+ */
   static auto
   max_theta(DiGraph<std::variant<StructU3, std::array<qc::Qubit, 2>>>& circuit,
-            const std::vector<unsigned long long>& nodes) -> qc::fp;
+            const std::vector<std::size_t>& nodes) -> qc::fp;
+
+  /**
+ * @brief returns the next two- and single-Qubit moments which can be scheduled
+ * @details
+ * @param circuit the quantum circuit in graph form
+ * @param v a vector containing all unscheduled nodes
+ * @param nQubits the number of qubits in the circuit
+ * @returns an array containing vectors of the next two Qubit moments which can
+ *        be scheduled and the remaining nodes: [v_p,v_c,v_rem]
+ *        v_p: next two qubit gate moment
+ *        v_c: next single qubit gate moment
+ *        V-rem: remaining unscheduled nodes
+ */
   static auto
   sift(DiGraph<std::variant<StructU3, std::array<qc::Qubit, 2>>>& circuit,
-       size_t n_qubits) -> std::array<std::vector<size_t>, 3>;
+  std::vector<std::size_t> v, size_t nQubits) -> std::array<std::vector<size_t>, 3>;
 
+  /**
+ * @brief Builds a schedule from a circuit and subproblem graph
+ * @details
+ * @param circuit the circuit to be scheduled in graph form
+ * @param subproblem_graph the subproblem graph of the circuit
+ * @returns a pair of vectrs containing layers of StructU3's and two element
+ * arrays of Qubits representing CZ gates making up a schedule
+ */
   static auto build_schedule(
       DiGraph<std::variant<StructU3, std::array<qc::Qubit, 2>>>& circuit,
       DiGraph<std::pair<std::vector<size_t>, std::vector<size_t>>>&
           subproblem_graph) -> std::pair<std::vector<std::vector<StructU3>>,
                                          std::vector<TwoQubitGateLayer>>;
 
+  /**
+ * @brief Adds a node corresponding to the subproblem [v_p,v_c] to the
+ *        subproblem graph
+ * @details
+ * @param v_p a vector of node indices making up a two-Qubit gate moment
+ * @param v_c a vector of node indices making up a single-Qubit gate moment
+ * @param cost the maximal theta value of operations in v_c (aka. the cost)
+ * @param subproblem_graph a subproblem graph of a circuit
+ * @param prev_node the node corresponding to the previous subproblem
+ * @returns the node index of the node added to the subproblem graph
+ */
   static auto add_node_to_sub_prob_graph(
       const std::vector<size_t>& v_p, const std::vector<size_t>& v_c,
       qc::fp cost,
@@ -238,32 +394,51 @@ public:
           subproblem_graph,
       size_t prev_node) -> size_t;
 
+
+  /**
+ * @brief Recursively creates a subproblem graph for a given circuit
+ * @details
+ * @param v the current subproblem [v_p,v_c,v_rem] for which to create a schedule
+ * @param circuit the graph representation of the circuit to be scheduled
+ * @param subproblem_graph the subproblem graph of the circuit to be scheduled
+ * @param prev_node the previous node in the subproblem graph
+ * @param nQubits the number of qubits in the circuit
+ * @param check_final_cond a bool deciding whether the function should only
+ *        allow possible next moments with strictly decreasing cost
+ * @param memo a map using subproblem hashes as keys and saving as values a pair
+ *        of a node index in the subproblem graph and an array containing the
+ *        cost of the single-Qubit layer in the current subproblem and the total
+ *        cost of the schedule originating from that subproblem
+ * @returns
+ */
   static auto schedule_remaining(
       const std::array<std::vector<size_t>, 3>& v,
       DiGraph<std::variant<StructU3, std::array<qc::Qubit, 2>>>& circuit,
       DiGraph<std::pair<std::vector<size_t>, std::vector<size_t>>>&
           subproblem_graph,
-      size_t prev_node, size_t n_qubits, bool check_final_cond,
+      size_t prev_node, size_t nQubits, bool check_final_cond,
       std::map<size_t, std::pair<size_t, std::array<double, 2>>>& memo)
       -> double;
+
   /**
-   * This function schedules the operations of a quantum computation.
+   * @brief Creates a schedule minimizing the sum total of the global rotation
+   * angles theta across a quantum circuit
    * @details
-   * @param asap_schedule
-   * @param qc is the quantum computation
-   * @return a pair of two vectors. The first vector contains the layers of
-   * single-qubit operations. The second vector contains the layers of two-qubit
-   * operations. A pair of qubits represents every two-qubit operation.
+   * @param schedule the preliminary schedule provided
+   * @param nQubits the number of qubits in the circuit
+   * @returns a schedule minimizing the total rotation angle theta
    */
   [[nodiscard]] auto schedule_theta_opt(
       const std::pair<std::vector<std::vector<StructU3>>,
-                      std::vector<TwoQubitGateLayer>>& asap_schedule,
-      std::size_t n_qubits) const
+                      std::vector<TwoQubitGateLayer>>& schedule,
+      std::size_t nQubits) const
       -> std::pair<std::vector<std::vector<StructU3>>,
                    std::vector<TwoQubitGateLayer>>;
 };
 } // namespace na::zoned
-
+/**
+ * A hash function for subproblems [v_p,v_c,v_rem]
+ */
 template <> struct std::hash<std::array<std::vector<std::size_t>, 3>> {
   auto operator()(const std::array<std::vector<std::size_t>, 3>& array)
       const noexcept -> std::size_t {

@@ -10,18 +10,17 @@
 
 #pragma once
 
-#include "Architecture.hpp"
-#include "code_generator/CodeGenerator.hpp"
-#include "decomposer/NativeGateDecomposer.hpp"
-#include "decomposer/NoOpDecomposer.hpp"
 #include "ir/QuantumComputation.hpp"
 #include "ir/operations/Operation.hpp"
-#include "layout_synthesizer/PlaceAndRouteSynthesizer.hpp"
-#include "layout_synthesizer/placer/HeuristicPlacer.hpp"
-#include "layout_synthesizer/placer/VertexMatchingPlacer.hpp"
-#include "layout_synthesizer/router/IndependentSetRouter.hpp"
 #include "na/NAComputation.hpp"
-#include "qdmi/devices/sc/Generator.hpp"
+#include "na/zoned/Architecture.hpp"
+#include "na/zoned/code_generator/CodeGenerator.hpp"
+#include "na/zoned/decomposer/NativeGateDecomposer.hpp"
+#include "na/zoned/decomposer/NoOpDecomposer.hpp"
+#include "na/zoned/layout_synthesizer/PlaceAndRouteSynthesizer.hpp"
+#include "na/zoned/layout_synthesizer/placer/HeuristicPlacer.hpp"
+#include "na/zoned/layout_synthesizer/placer/VertexMatchingPlacer.hpp"
+#include "na/zoned/layout_synthesizer/router/IndependentSetRouter.hpp"
 #include "reuse_analyzer/VertexMatchingReuseAnalyzer.hpp"
 #include "scheduler/ASAPScheduler.hpp"
 
