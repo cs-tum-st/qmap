@@ -148,7 +148,7 @@ TEST_F(ThetaOptTest, SiftTest) {
 
   // Perform Sift (multiple times???)
   std::vector<std::size_t> v_start = {0};
-  for (auto i = 0; i < graph.size(); ++i) {
+  for (std::size_t i = 0; i < graph.size(); ++i) {
     v_start.push_back(i);
   }
   std::array<std::vector<size_t>, 3> v =
@@ -171,32 +171,348 @@ TEST_F(ThetaOptTest, SiftTest) {
   EXPECT_THAT(v[2], ::testing::IsEmpty());
 }
 
+TEST_F(ThetaOptTest, NextMomentsPushTest) {
+  // Circuit
+  //         ┌─────────────────┐             ┌───────┐
+  //  q_0: ──┤ U(PI,Pi/2,PI/4) ├─────────■───┤   X   ├─────────■────
+  //         └─────────────────┘         │   └───────┘         │
+  //                                     │   ┌───────┐         │
+  //  q_1: ──────────────────────────■───■───┤   Y   ├─────────│────
+  //                                 │       └───────┘         │
+  //         ┌───────────────────┐   │   ┌────────────────┐    │
+  //  q_2: ──┤ U(PI/4,PI/4,PI/4) ├───■───┤ U(PI/2,0,PI/2) ├────■────
+  //         └───────────────────┘       └────────────────┘
+  size_t n = 3;
+  qc::QuantumComputation qc(n);
+  qc.u(qc::PI, qc::PI_2, qc::PI_4, 0);
+  qc.u(qc::PI_4, qc::PI_4, qc::PI_4, 2);
+  qc.cz(1, 2);
+  qc.cz(0, 1);
+  qc.x(0);
+  qc.y(1);
+  qc.u(qc::PI_2, 0.0, qc::PI_2, 2);
+  qc.cz(0, 2);
+  auto schedule = scheduler.schedule(qc);
+  auto one_qubit_gates = NativeGateDecomposer::transformToU3(schedule.first, n);
+  auto graph = NativeGateDecomposer::convert_circ_to_dag(
+      {one_qubit_gates, schedule.second}, n);
+  auto v = NativeGateDecomposer::sift(graph, {0, 1, 2, 3, 4, 5, 6, 7, 8}, n);
+  NativeGateDecomposer::DiGraph<
+      std::pair<std::vector<std::size_t>, std::vector<std::size_t>>>
+      subproblem_graph{};
+  subproblem_graph.add_Node(
+      std::pair<std::vector<std::size_t>, std::vector<std::size_t>>({}, {}));
+  auto v_new = NativeGateDecomposer::sift(graph, v[2], n);
+  auto moments =
+      NativeGateDecomposer::get_possible_moments(graph, v[1], v_new, false);
+
+  EXPECT_EQ(moments.size(), 2);
+
+  EXPECT_THAT(moments[0].second, ::testing::DoubleNear(qc::PI, epsilon));
+  EXPECT_THAT(moments[0].first[0], ::testing::UnorderedElementsAre(0, 1));
+  EXPECT_THAT(moments[0].first[1], ::testing::UnorderedElementsAre(2, 4));
+  EXPECT_THAT(moments[0].first[2], ::testing::UnorderedElementsAre(3, 5, 6));
+  EXPECT_THAT(moments[0].first[3], ::testing::UnorderedElementsAre(7));
+
+  EXPECT_THAT(moments[1].second, ::testing::DoubleNear(qc::PI_4, epsilon));
+  EXPECT_THAT(moments[1].first[0], ::testing::UnorderedElementsAre(1));
+  EXPECT_THAT(moments[1].first[1], ::testing::UnorderedElementsAre(2));
+  EXPECT_THAT(moments[1].first[2], ::testing::UnorderedElementsAre(3, 0));
+  EXPECT_THAT(moments[1].first[3], ::testing::UnorderedElementsAre(4, 5, 6, 7));
+}
+
+TEST_F(ThetaOptTest, NextMomentsCond2Test) {
+  // Circuit
+  //         ┌─────────────────┐             ┌───────┐
+  //  q_0: ──┤ U(PI,Pi/2,PI/4) ├─────■───■───┤   X   ├─────────■────
+  //         └─────────────────┘     │   │   └───────┘         │
+  //                                 │   │   ┌───────┐         │
+  //  q_1: ──────────────────────────│───■───┤   Y   ├─────────│────
+  //                                 │       └───────┘         │
+  //         ┌───────────────────┐   │   ┌────────────────┐    │
+  //  q_2: ──┤ U(PI/4,PI/4,PI/4) ├───■───┤ U(PI/2,0,PI/2) ├────■────
+  //         └───────────────────┘       └────────────────┘
+  size_t n = 3;
+  qc::QuantumComputation qc(n);
+  qc.u(qc::PI, qc::PI_2, qc::PI_4, 0);
+  qc.u(qc::PI_4, qc::PI_4, qc::PI_4, 2);
+  qc.cz(0, 2);
+  qc.cz(0, 1);
+  qc.x(0);
+  qc.y(1);
+  qc.u(qc::PI_2, 0.0, qc::PI_2, 2);
+  qc.cz(0, 2);
+  auto schedule = scheduler.schedule(qc);
+  auto one_qubit_gates = NativeGateDecomposer::transformToU3(schedule.first, n);
+  auto graph = NativeGateDecomposer::convert_circ_to_dag(
+      {one_qubit_gates, schedule.second}, n);
+  auto v = NativeGateDecomposer::sift(graph, {0, 1, 2, 3, 4, 5, 6, 7, 8}, n);
+  NativeGateDecomposer::DiGraph<
+      std::pair<std::vector<std::size_t>, std::vector<std::size_t>>>
+      subproblem_graph{};
+  subproblem_graph.add_Node(
+      std::pair<std::vector<std::size_t>, std::vector<std::size_t>>({}, {}));
+  auto v_new = NativeGateDecomposer::sift(graph, v[2], n);
+  auto moments =
+      NativeGateDecomposer::get_possible_moments(graph, v[1], v_new, false);
+
+  EXPECT_EQ(moments.size(), 1);
+
+  EXPECT_THAT(moments[0].second, ::testing::DoubleNear(qc::PI, epsilon));
+  EXPECT_THAT(moments[0].first[0], ::testing::UnorderedElementsAre(0, 1));
+  EXPECT_THAT(moments[0].first[1], ::testing::UnorderedElementsAre(2, 4));
+  EXPECT_THAT(moments[0].first[2], ::testing::UnorderedElementsAre(3, 5, 6));
+  EXPECT_THAT(moments[0].first[3], ::testing::UnorderedElementsAre(7));
+}
+
+TEST_F(ThetaOptTest, NextMomentsCond3Test) {
+  // Circuit
+  //         ┌─────────────────┐             ┌───────┐
+  //  q_0: ──┤ U(PI,Pi/2,PI/4) ├─────────■───┤   X   ├─────■────
+  //         └─────────────────┘         │   └───────┘     │
+  //                                     │   ┌───────┐     │
+  //  q_1: ──────────────────────────■───■───┤   Y   ├─────│────
+  //                                 │       └───────┘     │
+  //         ┌───────────────────┐   │                     │
+  //  q_2: ──┤ U(PI/4,PI/4,PI/4) ├───■─────────────────────■────
+  //         └───────────────────┘
+  size_t n = 3;
+  qc::QuantumComputation qc(n);
+  qc.u(qc::PI, qc::PI_2, qc::PI_4, 0);
+  qc.u(qc::PI_4, qc::PI_4, qc::PI_4, 2);
+  qc.cz(1, 2);
+  qc.cz(0, 1);
+  qc.x(0);
+  qc.y(1);
+  qc.cz(0, 2);
+  auto schedule = scheduler.schedule(qc);
+  auto one_qubit_gates = NativeGateDecomposer::transformToU3(schedule.first, n);
+  auto graph = NativeGateDecomposer::convert_circ_to_dag(
+      {one_qubit_gates, schedule.second}, n);
+  auto v = NativeGateDecomposer::sift(graph, {0, 1, 2, 3, 4, 5, 6, 7, 8}, n);
+  NativeGateDecomposer::DiGraph<
+      std::pair<std::vector<std::size_t>, std::vector<std::size_t>>>
+      subproblem_graph{};
+  subproblem_graph.add_Node(
+      std::pair<std::vector<std::size_t>, std::vector<std::size_t>>({}, {}));
+  auto v_new = NativeGateDecomposer::sift(graph, v[2], n);
+  auto moments =
+      NativeGateDecomposer::get_possible_moments(graph, v[1], v_new, false);
+
+  EXPECT_EQ(moments.size(), 1);
+
+  EXPECT_THAT(moments[0].second, ::testing::DoubleNear(qc::PI, epsilon));
+  EXPECT_THAT(moments[0].first[0], ::testing::UnorderedElementsAre(0, 1));
+  EXPECT_THAT(moments[0].first[1], ::testing::UnorderedElementsAre(2, 3));
+  EXPECT_THAT(moments[0].first[2], ::testing::UnorderedElementsAre(4, 5));
+  EXPECT_THAT(moments[0].first[3], ::testing::UnorderedElementsAre(6));
+}
+
+// COND4 Test??
+
+TEST_F(ThetaOptTest, RecursionBaseTest) {
+  // Circuit
+  //         ┌───────┐           ┌───────┐       ┌───────┐
+  //  q_0: ──┤   U()   ├───■───────┤   U   ├───■───┤   U(3/2)   ├─
+  //         └───────┘   │       └───────┘   │   └───────┘
+  //                     │       ┌───────┐   │
+  //  q_1: ──────────────■───■───┤   U   ├───│─────────────
+  //                         │   └───────┘   │
+  //         ┌───────┐       │   ┌───────┐   │
+  //  q_1: ──┤   U()  ├───────■───┤   U   ├───■─────────────
+  //         └───────┘           └───────┘
+
+  size_t n = 3;
+  qc::QuantumComputation qc(n);
+  qc.x(0);
+  qc.x(2);
+  qc.cz(0, 1);
+  qc.cz(1, 2);
+  qc.z(0);
+  qc.x(1);
+  qc.y(2);
+  qc.cz(0, 2);
+  qc.y(0);
+
+  auto schedule = scheduler.schedule(qc);
+  auto one_qubit_gates = NativeGateDecomposer::transformToU3(schedule.first, n);
+  auto graph = NativeGateDecomposer::convert_circ_to_dag(
+      {one_qubit_gates, schedule.second}, n);
+  auto v = NativeGateDecomposer::sift(graph, {0, 1, 2, 3, 4, 5, 6, 7, 8}, n);
+  NativeGateDecomposer::DiGraph<
+      std::pair<std::vector<std::size_t>, std::vector<std::size_t>>>
+      subproblem_graph{};
+  subproblem_graph.add_Node(
+      std::pair<std::vector<std::size_t>, std::vector<std::size_t>>({}, {}));
+  std::map<size_t, std::pair<size_t, std::array<double, 2>>> memo =
+      std::map<size_t, std::pair<size_t, std::array<double, 2>>>();
+  auto result = NativeGateDecomposer::schedule_remaining(
+      v, graph, subproblem_graph, 0, n, false, memo);
+
+  EXPECT_THAT(subproblem_graph.get_Node_Value(1).first, ::testing::IsEmpty());
+  EXPECT_THAT(subproblem_graph.get_Node_Value(1).second,
+              ::testing::ElementsAre(0, 1));
+}
+
 TEST_F(ThetaOptTest, RecursionMemoTest) {
   // Circuit
 }
 
-TEST_F(ThetaOptTest, RecursionBaseTest) {
-  // Circuit
-}
-
-TEST_F(ThetaOptTest, RecursionCallTest) {
-  // Circuit
-}
-
-TEST_F(ThetaOptTest, ShortesPathTest) {
+TEST_F(ThetaOptTest, ShortestPathTest) {
   // Subproblem graph!
-
+  NativeGateDecomposer::DiGraph<
+      std::pair<std::vector<std::size_t>, std::vector<std::size_t>>>
+      subproblem_graph{};
+  for (int i = 0; i < 14; i++) {
+    subproblem_graph.add_Node(
+        std::pair<std::vector<std::size_t>, std::vector<std::size_t>>({}, {}));
+  }
+  subproblem_graph.add_Edge(0, 1);
+  subproblem_graph.add_Edge(0, 2);
+  subproblem_graph.add_Edge(0, 3, 0.5);
+  subproblem_graph.add_Edge(1, 4);
+  subproblem_graph.add_Edge(2, 5);
+  subproblem_graph.add_Edge(3, 6);
+  subproblem_graph.add_Edge(3, 7);
+  subproblem_graph.add_Edge(4, 8);
+  subproblem_graph.add_Edge(5, 8);
+  subproblem_graph.add_Edge(5, 9);
+  subproblem_graph.add_Edge(6, 10);
+  subproblem_graph.add_Edge(7, 11);
+  subproblem_graph.add_Edge(8, 12);
+  subproblem_graph.add_Edge(11, 13);
+  auto leaf_nodes = NativeGateDecomposer::find_leaf_nodes(subproblem_graph);
+  auto path =
+      NativeGateDecomposer::find_shortest_path(subproblem_graph, leaf_nodes);
+  EXPECT_THAT(leaf_nodes, ::testing::ElementsAre(9, 10, 12, 13));
+  EXPECT_THAT(path, ::testing::ElementsAre(3, 6, 10));
 }
 
 TEST_F(ThetaOptTest, BuildScheduleTest) {
   // Circuit
+  //         ┌───────┐           ┌───────┐       ┌───────┐
+  //  q_0: ──┤   X   ├───■───────┤   Z   ├───■───┤   Y   ├─
+  //         └───────┘   │       └───────┘   │   └───────┘
+  //                     │       ┌───────┐   │
+  //  q_1: ──────────────■───■───┤   X   ├───│─────────────
+  //                         │   └───────┘   │
+  //         ┌───────┐       │   ┌───────┐   │
+  //  q_2: ──┤   X   ├───────■───┤   Y   ├───■─────────────
+  //         └───────┘           └───────┘
+
+  size_t n = 3;
+  qc::QuantumComputation qc(n);
+  qc.x(0);
+  qc.x(2);
+  qc.cz(0, 1);
+  qc.cz(1, 2);
+  qc.z(0);
+  qc.x(1);
+  qc.y(2);
+  qc.cz(0, 2);
+  qc.y(0);
+
+  auto asap_schedule = scheduler.schedule(qc);
+  auto one_qubit_gates =
+      NativeGateDecomposer::transformToU3(asap_schedule.first, n);
+  auto graph = NativeGateDecomposer::convert_circ_to_dag(
+      {one_qubit_gates, asap_schedule.second}, n);
+
+  // Create Basic Subproblem graph from purely sifted schedule
+  NativeGateDecomposer::DiGraph<
+      std::pair<std::vector<std::size_t>, std::vector<std::size_t>>>
+      subproblem_graph{};
+  subproblem_graph.add_Node(
+      std::pair<std::vector<std::size_t>, std::vector<std::size_t>>({}, {}));
+  subproblem_graph.add_Node(
+      std::pair<std::vector<std::size_t>, std::vector<std::size_t>>({},
+                                                                    {0, 1}));
+  subproblem_graph.add_Node(
+      std::pair<std::vector<std::size_t>, std::vector<std::size_t>>({2, 4},
+                                                                    {3, 5, 6}));
+  subproblem_graph.add_Node(
+      std::pair<std::vector<std::size_t>, std::vector<std::size_t>>({7}, {8}));
+  subproblem_graph.add_Edge(0, 1,
+                            NativeGateDecomposer::max_theta(graph, {0, 1}));
+  subproblem_graph.add_Edge(1, 2,
+                            NativeGateDecomposer::max_theta(graph, {3, 5, 6}));
+  subproblem_graph.add_Edge(2, 3, NativeGateDecomposer::max_theta(graph, {8}));
+
+  auto schedule = NativeGateDecomposer::build_schedule(graph, subproblem_graph);
+
+  EXPECT_EQ(schedule.first.size(), 4);
+  EXPECT_EQ(schedule.second.size(), 3);
+
+  EXPECT_EQ(schedule.first.front().at(0).qubit, 0);
+  EXPECT_THAT(schedule.first.front().at(0).angles,
+              ::testing::ElementsAre(one_qubit_gates.at(0).at(0).angles[0],
+                                     one_qubit_gates.at(0).at(0).angles[1],
+                                     one_qubit_gates.at(0).at(0).angles[2]));
+  EXPECT_EQ(schedule.first.at(0).at(1).qubit, 2);
+  EXPECT_THAT(schedule.first.at(0).at(1).angles,
+              ::testing::ElementsAre(one_qubit_gates.at(0).at(0).angles[0],
+                                     one_qubit_gates.at(0).at(0).angles[1],
+                                     one_qubit_gates.at(0).at(0).angles[2]));
+
+  EXPECT_THAT(schedule.second.at(0).at(0), ::testing::ElementsAre(0, 1));
+
+  EXPECT_TRUE(schedule.first.at(1).empty());
+
+  EXPECT_THAT(schedule.second.at(1).at(0), ::testing::ElementsAre(1, 2));
+
+  EXPECT_EQ(schedule.first.at(2).at(0).qubit, 0);
+  EXPECT_THAT(schedule.first.at(2).at(0).angles,
+              ::testing::ElementsAre(one_qubit_gates.at(1).at(0).angles[0],
+                                     one_qubit_gates.at(1).at(0).angles[1],
+                                     one_qubit_gates.at(1).at(0).angles[2]));
+  // Two gates flipped??
+  EXPECT_EQ(schedule.first.at(2).at(1).qubit, 1);
+  EXPECT_THAT(schedule.first.at(2).at(1).angles,
+              ::testing::ElementsAre(one_qubit_gates.at(2).at(0).angles[0],
+                                     one_qubit_gates.at(2).at(0).angles[1],
+                                     one_qubit_gates.at(2).at(0).angles[2]));
+  EXPECT_EQ(schedule.first.at(2).at(2).qubit, 2);
+  EXPECT_THAT(schedule.first.at(2).at(2).angles,
+              ::testing::ElementsAre(one_qubit_gates.at(2).at(1).angles[0],
+                                     one_qubit_gates.at(2).at(1).angles[1],
+                                     one_qubit_gates.at(2).at(1).angles[2]));
+
+  EXPECT_THAT(schedule.second.at(2).at(0),::testing::ElementsAre(0,2));
+
+  EXPECT_EQ(schedule.first.at(3).at(0).qubit,0);
+  EXPECT_THAT(schedule.first.at(3).at(0).angles,::testing::ElementsAre(one_qubit_gates.at(3).at(0).angles[0],
+    one_qubit_gates.at(3).at(0).angles[1],one_qubit_gates.at(3).at(0).angles[2]));
+
 }
 
 TEST_F(ThetaOptTest, CompleteTestSmall) {
   // Circuit
+  //         ┌───────┐           ┌───────┐       ┌───────┐
+  //  q_0: ──┤   X   ├───■───────┤   Z   ├───■───┤   Y   ├─
+  //         └───────┘   │       └───────┘   │   └───────┘
+  //                     │       ┌───────┐   │
+  //  q_1: ──────────────■───■───┤   X   ├───│─────────────
+  //                         │   └───────┘   │
+  //         ┌───────┐       │   ┌───────┐   │
+  //  q_2: ──┤   X   ├───────■───┤   Y   ├───■─────────────
+  //         └───────┘           └───────┘
+
+  size_t n = 3;
+  qc::QuantumComputation qc(n);
+  qc.x(0);
+  qc.x(2);
+  qc.cz(0, 1);
+  qc.cz(1, 2);
+  qc.z(0);
+  qc.x(1);
+  qc.y(2);
+  qc.cz(0, 2);
+  qc.y(0);
+
+
 }
 
 TEST_F(ThetaOptTest, CompleteTestBig) {
-
+//Circuit BIG
 }
 } // namespace na::zoned

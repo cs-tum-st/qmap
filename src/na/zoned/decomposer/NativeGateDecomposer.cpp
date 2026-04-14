@@ -285,7 +285,8 @@ auto NativeGateDecomposer::find_shortest_path(
   std::pair<std::vector<std::size_t>, double> leaf_path =
       shortest_path_to_start(subproblem_graph, 0, leaves);
   std::ranges::reverse(leaf_path.first);
-  return leaf_path.first;
+
+  return {leaf_path.first.begin() + 1, leaf_path.first.end()};
 }
 auto disjunct(const std::set<size_t>& set1, const std::set<size_t>& set2)
     -> bool {
@@ -314,19 +315,19 @@ auto NativeGateDecomposer::shortest_path_to_start(
     -> std::pair<std::vector<std::size_t>, double> {
   std::vector<std::pair<std::vector<std::size_t>, double>> possible_paths = {};
   // Check if leaf nodes are reached
-  for (auto node : subproblem_graph.get_adjacent(current_node)) {
-    if (leaf_nodes.contains(node.first)) {
+  for (auto edge : subproblem_graph.get_adjacent(current_node)) {
+    if (leaf_nodes.contains(edge.first)) {
       possible_paths.push_back({std::pair<std::vector<std::size_t>, double>(
-          {node.first, current_node}, node.second)});
+          {edge.first, current_node}, edge.second)});
     }
   }
   // Recursive Case
   if (possible_paths.empty()) {
-    for (auto node : subproblem_graph.get_adjacent(current_node)) {
+    for (auto edge : subproblem_graph.get_adjacent(current_node)) {
       auto path =
-          shortest_path_to_start(subproblem_graph, node.first, leaf_nodes);
+          shortest_path_to_start(subproblem_graph, edge.first, leaf_nodes);
       path.first.push_back(current_node);
-      path.second += node.second;
+      path.second += edge.second;
       possible_paths.push_back(path);
     }
   }
@@ -341,7 +342,6 @@ auto NativeGateDecomposer::shortest_path_to_start(
   }
   for (const auto& path : possible_paths) {
     if (path.first.size() == min_length) {
-      ;
       shortest_paths.push_back(path);
     }
   }
@@ -352,7 +352,7 @@ auto NativeGateDecomposer::shortest_path_to_start(
   auto min_cost = shortest_paths.at(0).second;
   auto best_path = shortest_paths.at(0);
   for (const auto& path : shortest_paths) {
-    if (path.second > min_cost) {
+    if (path.second < min_cost) {
       min_cost = path.second;
       best_path = path;
     }
@@ -385,7 +385,6 @@ auto NativeGateDecomposer::remove_element(
   return new_vector;
 }
 
-// TODO: ADD last cond Bool??
 auto NativeGateDecomposer::get_possible_moments(
     DiGraph<std::variant<StructU3, std::array<qc::Qubit, 2>>>& circuit,
     const std::vector<size_t>& v0_c,
@@ -427,8 +426,7 @@ auto NativeGateDecomposer::get_possible_moments(
     this_theta =
         std::get<StructU3>(circuit.get_Node_Value(v_sort[i])).angles[0];
     if (this_theta != prev_theta) {
-      std::vector<std::size_t> discarded = {v_sort.begin(),
-                                            v_sort.begin() + (i - 1)};
+      std::vector<std::size_t> discarded = {v_sort.begin(), v_sort.begin() + i};
       std::vector<std::size_t> kept = {v_sort.begin() + i, v_sort.end()};
       potential_arg.push_back(std::pair<std::array<std::vector<std::size_t>, 2>,
                                         std::pair<std::set<qc::Qubit>, qc::fp>>(
@@ -482,10 +480,9 @@ auto NativeGateDecomposer::get_possible_moments(
     if (v_c1_star.empty()) {
       break;
     }
-    // TODO Check Condition 4 ?? Find out what it does!!
-    if ((!check_final_cond) ||
-        (check_final_cond &&
-         pot.second.second + new_v_c1_cost < orig_comb_cost)) {
+    // TODO Check Condition 4
+    if (!check_final_cond ||
+        pot.second.second + new_v_c1_cost < orig_comb_cost) {
       v_arg = {pot.first[0], v_p1_star, pot.first[1], v_new[2]};
       for (auto node : v_c1_star) {
         v_arg[2].push_back(node);
@@ -564,7 +561,6 @@ auto NativeGateDecomposer::sift(
 
   for (auto node = 0; node < circuit.size(); node++) {
     if (v_rem.contains(node)) { // TODO: SORT V_rem??? Needs to be a topological
-                                // sort!!!-> order in Circuit is topological
       auto op = circuit.get_Node_Value(node);
 
       std::set<size_t> op_qubits = std::set<size_t>();
@@ -606,9 +602,7 @@ auto NativeGateDecomposer::build_schedule(
         subproblem_graph) -> std::pair<std::vector<std::vector<StructU3>>,
                                        std::vector<TwoQubitGateLayer>> {
 
-  // TODO: Find Leaf Nodes of di_graph
   std::vector<std::size_t> leaf_nodes = find_leaf_nodes(subproblem_graph);
-  // TODO: Find shortest path with minimal weight
   std::vector<std::size_t> minimal_path =
       find_shortest_path(subproblem_graph, leaf_nodes);
   std::pair<std::vector<std::vector<StructU3>>, std::vector<TwoQubitGateLayer>>
@@ -616,31 +610,52 @@ auto NativeGateDecomposer::build_schedule(
                            std::vector<TwoQubitGateLayer>>{};
   // !!!!TODO:ADD in the check that makes sure SQGL's sandwich schedule: If 1st
   // v_p empty skip adding it . If not add empty SQGL
+
+  std::vector<StructU3> singleQubitGates;
+  std::vector<std::array<qc::Qubit, 2>> twoQubitGates;
+
+  if (!subproblem_graph.get_Node_Value(minimal_path[0]).first.empty()) {
+    schedule.first.push_back({});
+  }
+  std::set<qc::Qubit> used_qubits{};
+
   for (std::size_t i = 0; i < minimal_path.size(); i++) {
-    for (auto j = 0;
-         j < subproblem_graph.get_Node_Value(minimal_path[i]).second.size();
-         ++j) {
-      auto op = circuit.get_Node_Value(
-          subproblem_graph.get_Node_Value(minimal_path[i]).second.at(j));
-      if (std::holds_alternative<StructU3>(op)) {
-        schedule.first.at(i + 1).emplace_back(std::get<StructU3>(op));
+    singleQubitGates.clear();
+    twoQubitGates.clear();
+    used_qubits.clear();
+
+    for (auto j : subproblem_graph.get_Node_Value(minimal_path[i]).first) {
+      auto op = circuit.get_Node_Value(j);
+      if (std::holds_alternative<std::array<qc::Qubit, 2>>(op)) {
+        // TODO: Check if TWOQUBIT GATES Can be executed in parallel!!
+        auto gate = std::get<std::array<qc::Qubit, 2>>(op);
+        if (used_qubits.contains(gate[0]) || used_qubits.contains(gate[1])) {
+          schedule.second.push_back(twoQubitGates);
+          schedule.first.push_back({});
+          twoQubitGates.clear();
+          used_qubits.clear();
+        }
+        used_qubits.insert(gate[0]);
+        used_qubits.insert(gate[1]);
+        twoQubitGates.emplace_back(gate);
       }
     }
 
-    for (auto j = 0;
-         j < subproblem_graph.get_Node_Value(minimal_path[i]).first.size();
-         ++j) {
-      auto op = circuit.get_Node_Value(
-          subproblem_graph.get_Node_Value(minimal_path[i]).first.at(j));
-
+    for (auto j : subproblem_graph.get_Node_Value(minimal_path[i]).second) {
+      auto op = circuit.get_Node_Value(j);
       if (std::holds_alternative<StructU3>(op)) {
-        schedule.second.at(i).emplace_back(
-            std::get<std::array<qc::Qubit, 2>>(op));
+        singleQubitGates.emplace_back(std::get<StructU3>(op));
       }
+    }
+    schedule.first.push_back(singleQubitGates);
+    if (i != 0 ||
+        !subproblem_graph.get_Node_Value(minimal_path[0]).first.empty()) {
+      schedule.second.push_back(twoQubitGates);
     }
   }
   return schedule;
 }
+
 auto NativeGateDecomposer::add_node_to_sub_prob_graph(
     const std::vector<size_t>& v_p, const std::vector<size_t>& v_c, qc::fp cost,
     DiGraph<std::pair<std::vector<std::size_t>, std::vector<std::size_t>>>&
@@ -688,16 +703,17 @@ auto NativeGateDecomposer::schedule_remaining(
   double min_cost = std::numeric_limits<double>::max();
   double min_weight = std::numeric_limits<double>::max();
   std::size_t min_node;
-  for (const auto& val : args | std::views::values) {
-    auto new_node = add_node_to_sub_prob_graph(v[0], v_new[1], val,
+  for (const auto& val : args) {
+    // v_new[1] is WRONG!
+    auto new_node = add_node_to_sub_prob_graph(v[0], val.first[0], val.second,
                                                subproblem_graph, prev_node);
     temp_cost = schedule_remaining(v_new, circuit, subproblem_graph, new_node,
                                    nQubits, check_final_cond, memo) +
-                val;
+                val.second;
     if (temp_cost < min_cost) {
       min_cost = temp_cost;
       min_node = new_node;
-      min_weight = val;
+      min_weight = val.second;
     }
   }
   memo[id] = std::pair<std::size_t, std::array<double, 2>>(
