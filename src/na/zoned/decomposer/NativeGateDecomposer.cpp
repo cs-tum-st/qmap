@@ -120,12 +120,10 @@ auto NativeGateDecomposer::getU3AnglesFromQuaternion(const Quaternion& quat)
       lambda = 2 * alpha_1;
     }
   } else {
-    theta = qc::PI; // or § PI if sin(theta/2)=-1... Relevant? Or is the -1=
-                    // exp(i*pi) just global phase
+    theta = qc::PI;
     if (std::fabs(quat[1]) > epsilon || std::fabs(quat[2]) > epsilon) {
       phi = 0;
       lambda = 2 * std::atan2(quat[1], quat[2]);
-      // atan can give PI instead of 0 Problem?
     } else {
       // This should never happen! Exception??
       phi = 0.;
@@ -678,6 +676,7 @@ auto NativeGateDecomposer::schedule_remaining(
   // TODO: Check if subproblem has been computed
   std::size_t id = std::hash<std::array<std::vector<size_t>, 3>>{}(v);
   if (memo.contains(id)) {
+    // Wrong memory Call!!!
     std::size_t sub_node = memo.at(id).first;
     double edge_weight = memo.at(id).second[1];
     cost = memo.at(id).second[0];
@@ -693,10 +692,13 @@ auto NativeGateDecomposer::schedule_remaining(
         cost = std::get<StructU3>(circuit.get_Node_Value(i)).angles[0];
       }
     }
-    add_node_to_sub_prob_graph(v[0], v[1], cost, subproblem_graph, prev_node);
+    auto end_node = add_node_to_sub_prob_graph(v[0], v[1], cost,
+                                               subproblem_graph, prev_node);
+    memo[id] = std::pair<std::size_t, std::array<double, 2>>(
+        end_node, {cost, cost}); // TODO: Correct to put cost for both???
     return cost;
   }
-  // TODO: Recursive Call
+  // TODO: Recursive Call: Only
   auto v_new = sift(circuit, v[2], nQubits);
   auto args = get_possible_moments(circuit, v[1], v_new, check_final_cond);
   qc::fp temp_cost = 0;
@@ -704,12 +706,11 @@ auto NativeGateDecomposer::schedule_remaining(
   double min_weight = std::numeric_limits<double>::max();
   std::size_t min_node;
   for (const auto& val : args) {
-    // v_new[1] is WRONG!
     auto new_node = add_node_to_sub_prob_graph(v[0], val.first[0], val.second,
                                                subproblem_graph, prev_node);
-    temp_cost = schedule_remaining(v_new, circuit, subproblem_graph, new_node,
-                                   nQubits, check_final_cond, memo) +
-                val.second;
+    // USdingg v_new is incorrect!! need adjusted one for arg
+    temp_cost = schedule_remaining({val.first[1], val.first[2], val.first[3]},
+                                   circuit, subproblem_graph, new_node, nQubits, check_final_cond, memo) + val.second;
     if (temp_cost < min_cost) {
       min_cost = temp_cost;
       min_node = new_node;
