@@ -312,19 +312,24 @@ TEST_F(ThetaOptTest, NextMomentsCond3Test) {
 
 TEST_F(ThetaOptTest, RecursionBaseTest) {
   // Circuit
-  //         ┌─────────────────┐             ┌───────┐ ┌─────────────────┐
-  //  q_0: ──┤ U(PI,Pi/2,PI/4) ├─────────■───┤   X   ├─────────■───┤
-  //  U(PI/2,PI/2,PI) ├──
+  //         ┌─────────────────┐             ┌───────┐
+  //  q_0: ──┤ U(PI,Pi/2,PI/4) ├─────────■───┤   X   ├─────────■─ ─ ─
   //         └─────────────────┘         │   └───────┘         │
-  //         └─────────────────┘
   //                                     │   ┌───────┐         │
-  //  q_1: ──────────────────────────■───■───┤   Y
-  //  ├─────────│───────────────────────
+  //  q_1: ──────────────────────────■───■───┤   Y   ├─────────│─ ─ ─
   //                                 │       └───────┘         │
   //         ┌───────────────────┐   │   ┌────────────────┐    │
-  //  q_2: ──┤ U(PI/4,PI/4,PI/4) ├───■───┤ U(PI/2,0,PI/2)
-  //  ├────■───────────────────────
+  //  q_2: ──┤ U(PI/4,PI/4,PI/4) ├───■───┤ U(PI/2,0,PI/2) ├────■─ ─ ─
   //         └───────────────────┘       └────────────────┘
+  //
+  //            ┌─────────────────┐
+  //  q_0: ─ ─ ─┤ U(PI/2,PI/2,PI) ├──
+  //            └─────────────────┘
+  //
+  //  q_1: ─ ─ ──────────────────────
+  //
+  //  q_2: ─ ─ ──────────────────────
+
   size_t n = 3;
   qc::QuantumComputation qc(n);
   qc.u(qc::PI, qc::PI_2, qc::PI_4, 0);
@@ -353,9 +358,48 @@ TEST_F(ThetaOptTest, RecursionBaseTest) {
   auto result = NativeGateDecomposer::schedule_remaining(
       v, graph, subproblem_graph, 0, n, false, memo);
 
+  EXPECT_EQ(result, 5 * qc::PI_2);
+
+  EXPECT_EQ(subproblem_graph.size(), 1 + 6);
+  auto t = subproblem_graph.get_adjacent(0);
+  EXPECT_THAT(subproblem_graph.get_adjacent(0),
+              ::testing::UnorderedElementsAre(::testing::Pair(1, qc::PI),
+                                              ::testing::Pair(4, qc::PI_4)));
+
   EXPECT_THAT(subproblem_graph.get_Node_Value(1).first, ::testing::IsEmpty());
   EXPECT_THAT(subproblem_graph.get_Node_Value(1).second,
-              ::testing::ElementsAre(0, 1));
+              ::testing::UnorderedElementsAre(0, 1));
+  EXPECT_THAT(subproblem_graph.get_adjacent(1),
+              ::testing::UnorderedElementsAre(::testing::Pair(2, qc::PI)));
+  EXPECT_THAT(subproblem_graph.get_Node_Value(2).first,
+              ::testing::UnorderedElementsAre(2, 4));
+  EXPECT_THAT(subproblem_graph.get_Node_Value(2).second,
+              ::testing::UnorderedElementsAre(3, 5, 6));
+  EXPECT_THAT(subproblem_graph.get_adjacent(2),
+              ::testing::UnorderedElementsAre(::testing::Pair(3, qc::PI_2)));
+  EXPECT_THAT(subproblem_graph.get_Node_Value(3).first,
+              ::testing::UnorderedElementsAre(7));
+  EXPECT_THAT(subproblem_graph.get_Node_Value(3).second,
+              ::testing::UnorderedElementsAre(8));
+  EXPECT_THAT(subproblem_graph.get_adjacent(3), ::testing::IsEmpty());
+
+  EXPECT_THAT(subproblem_graph.get_Node_Value(4).first, ::testing::IsEmpty());
+  EXPECT_THAT(subproblem_graph.get_Node_Value(4).second,
+              ::testing::UnorderedElementsAre(1));
+  EXPECT_THAT(subproblem_graph.get_adjacent(4),
+              ::testing::UnorderedElementsAre(::testing::Pair(5, qc::PI)));
+  EXPECT_THAT(subproblem_graph.get_Node_Value(5).first,
+              ::testing::UnorderedElementsAre(2));
+  EXPECT_THAT(subproblem_graph.get_Node_Value(5).second,
+              ::testing::UnorderedElementsAre(0, 3));
+  EXPECT_THAT(subproblem_graph.get_adjacent(5),
+              ::testing::UnorderedElementsAre(::testing::Pair(6, qc::PI)));
+  EXPECT_THAT(subproblem_graph.get_Node_Value(6).first,
+              ::testing::UnorderedElementsAre(4));
+  EXPECT_THAT(subproblem_graph.get_Node_Value(6).second,
+              ::testing::UnorderedElementsAre(5, 6));
+  EXPECT_THAT(subproblem_graph.get_adjacent(6),
+              ::testing::UnorderedElementsAre(::testing::Pair(3,qc::PI_2)));
 }
 
 
@@ -482,38 +526,119 @@ TEST_F(ThetaOptTest, BuildScheduleTest) {
 
   EXPECT_EQ(schedule.first.at(3).at(0).qubit,0);
   EXPECT_THAT(schedule.first.at(3).at(0).angles,::testing::ElementsAre(one_qubit_gates.at(3).at(0).angles[0],
-    one_qubit_gates.at(3).at(0).angles[1],one_qubit_gates.at(3).at(0).angles[2]));
-
+    one_qubit_gates.at(3).at(0).angles[1],
+                                     one_qubit_gates.at(3).at(0).angles[2]));
 }
 
 TEST_F(ThetaOptTest, CompleteTestSmall) {
   // Circuit
-  //         ┌───────┐           ┌───────┐       ┌───────┐
-  //  q_0: ──┤   X   ├───■───────┤   Z   ├───■───┤   Y   ├─
-  //         └───────┘   │       └───────┘   │   └───────┘
-  //                     │       ┌───────┐   │
-  //  q_1: ──────────────■───■───┤   X   ├───│─────────────
-  //                         │   └───────┘   │
-  //         ┌───────┐       │   ┌───────┐   │
-  //  q_2: ──┤   X   ├───────■───┤   Y   ├───■─────────────
-  //         └───────┘           └───────┘
+  //         ┌─────────────────┐             ┌───────┐
+  //  q_0: ──┤ U(PI,PI/2,PI/4) ├─────────■───┤   X   ├─────────■─ ─ ─
+  //         └─────────────────┘         │   └───────┘         │
+  //                                     │   ┌───────┐         │
+  //  q_1: ──────────────────────────■───■───┤   Y   ├─────────│─ ─ ─
+  //                                 │       └───────┘         │
+  //         ┌───────────────────┐   │   ┌────────────────┐    │
+  //  q_2: ──┤ U(PI/4,PI/4,PI/4) ├───■───┤ U(PI/2,0,PI/2) ├────■─ ─ ─
+  //         └───────────────────┘       └────────────────┘
+  //
+  //            ┌─────────────────┐
+  //  q_0: ─ ─ ─┤ U(PI/2,PI/2,PI) ├──
+  //            └─────────────────┘
+  //
+  //  q_1: ─ ─ ──────────────────────
+  //
+  //  q_2: ─ ─ ──────────────────────
 
   size_t n = 3;
   qc::QuantumComputation qc(n);
-  qc.x(0);
-  qc.x(2);
-  qc.cz(0, 1);
+  qc.u(qc::PI, qc::PI_2, qc::PI_4, 0);
+  qc.u(qc::PI_4, qc::PI_4, qc::PI_4, 2);
   qc.cz(1, 2);
-  qc.z(0);
-  qc.x(1);
-  qc.y(2);
+  qc.cz(0, 1);
+  qc.x(0);
+  qc.y(1);
+  qc.u(qc::PI_2, 0.0, qc::PI_2, 2);
   qc.cz(0, 2);
   qc.y(0);
+  qc.u(qc::PI_2, qc::PI_2, qc::PI, 0);
 
+  auto schedule = scheduler.schedule(qc);
+  auto one_qubit_gates = NativeGateDecomposer::transformToU3(schedule.first, n);
+  auto theta_opt_schedule =
+      decomposer.schedule_theta_opt({one_qubit_gates, schedule.second}, n);
+
+  EXPECT_EQ(theta_opt_schedule.first.size(), 4);
+  EXPECT_EQ(theta_opt_schedule.second.size(), 3);
+
+  EXPECT_EQ(theta_opt_schedule.first.at(0).size(), 2);
+  EXPECT_EQ(theta_opt_schedule.first.at(1).size(), 0);
+  EXPECT_EQ(theta_opt_schedule.first.at(2).size(), 3);
+  EXPECT_EQ(theta_opt_schedule.first.at(3).size(), 1);
+
+  EXPECT_EQ(theta_opt_schedule.second.at(0).size(), 1);
+  EXPECT_EQ(theta_opt_schedule.second.at(1).size(), 1);
+  EXPECT_EQ(theta_opt_schedule.second.at(2).size(), 1);
+
+  EXPECT_EQ(theta_opt_schedule.first.at(0).at(0).qubit, 0);
+  // TODO: DOUBLE Nears!!!
+  EXPECT_THAT(
+      theta_opt_schedule.first.at(0).at(0).angles,
+      ::testing::ElementsAre(
+          ::testing::DoubleNear(one_qubit_gates.at(0).at(0).angles[0], epsilon),
+          ::testing::DoubleNear(one_qubit_gates.at(0).at(0).angles[1], epsilon),
+          ::testing::DoubleNear(one_qubit_gates.at(0).at(0).angles[2],
+                                epsilon)));
+  EXPECT_EQ(theta_opt_schedule.first.at(0).at(1).qubit, 2);
+  EXPECT_THAT(
+      theta_opt_schedule.first.at(0).at(1).angles,
+      ::testing::ElementsAre(
+          ::testing::DoubleNear(one_qubit_gates.at(0).at(1).angles[0], epsilon),
+          ::testing::DoubleNear(one_qubit_gates.at(0).at(1).angles[1], epsilon),
+          ::testing::DoubleNear(one_qubit_gates.at(0).at(1).angles[2],
+                                epsilon)));
+
+  EXPECT_THAT(theta_opt_schedule.second.at(0).front(),
+              ::testing::ElementsAre(1, 2));
+
+  EXPECT_THAT(theta_opt_schedule.second.at(1).front(),
+              ::testing::ElementsAre(0, 1));
+  // QUAT
+  EXPECT_EQ(theta_opt_schedule.first.at(2).at(0).qubit, 2);
+  EXPECT_THAT(
+      theta_opt_schedule.first.at(2).at(0).angles,
+      ::testing::ElementsAre(
+          ::testing::DoubleNear(one_qubit_gates.at(1).at(0).angles[0], epsilon),
+          ::testing::DoubleNear(one_qubit_gates.at(1).at(0).angles[1], epsilon),
+          ::testing::DoubleNear(one_qubit_gates.at(1).at(0).angles[2],
+                                epsilon)));
+  EXPECT_EQ(theta_opt_schedule.first.at(2).at(1).qubit, 0);
+  EXPECT_THAT(
+      theta_opt_schedule.first.at(2).at(1).angles,
+      ::testing::ElementsAre(
+          ::testing::DoubleNear(one_qubit_gates.at(2).at(0).angles[0], epsilon),
+          ::testing::DoubleNear(one_qubit_gates.at(2).at(0).angles[1], epsilon),
+          ::testing::DoubleNear(one_qubit_gates.at(2).at(0).angles[2],
+                                epsilon)));
+  EXPECT_EQ(theta_opt_schedule.first.at(2).at(2).qubit, 1);
+  EXPECT_THAT(
+      theta_opt_schedule.first.at(2).at(2).angles,
+      ::testing::ElementsAre(
+          ::testing::DoubleNear(one_qubit_gates.at(2).at(1).angles[0], epsilon),
+          ::testing::DoubleNear(one_qubit_gates.at(2).at(1).angles[1], epsilon),
+          ::testing::DoubleNear(one_qubit_gates.at(2).at(1).angles[2], epsilon)));
+
+  EXPECT_THAT(theta_opt_schedule.second.at(2).front(),::testing::ElementsAre(0,2));
+
+  EXPECT_EQ(theta_opt_schedule.first.at(3).at(0).qubit,0);
+  EXPECT_THAT(theta_opt_schedule.first.at(3).at(0).angles,::testing::ElementsAre(
+    ::testing::DoubleNear(one_qubit_gates.at(3).at(0).angles[0], epsilon),
+    ::testing::DoubleNear(one_qubit_gates.at(3).at(0).angles[1], epsilon),
+    ::testing::DoubleNear(one_qubit_gates.at(3).at(0).angles[2], epsilon)));
 
 }
 
 TEST_F(ThetaOptTest, CompleteTestBig) {
-//Circuit BIG
+  //Circuit BIG
 }
 } // namespace na::zoned

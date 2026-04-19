@@ -110,9 +110,9 @@ auto NativeGateDecomposer::getU3AnglesFromQuaternion(const Quaternion& quat)
   if (std::fabs(quat[0]) > epsilon || std::fabs(quat[3]) > epsilon) {
     theta = 2. * std::atan2(std::sqrt(quat[2] * quat[2] + quat[1] * quat[1]),
                             std::sqrt(quat[0] * quat[0] + quat[3] * quat[3]));
-    qc::fp alpha_1 = std::atan2(quat[3], quat[0]); // phi+ lambda
+    qc::fp alpha_1 = std::atan2(quat[3], quat[0]); // (phi+ lambda) /2
     if (std::fabs(quat[1]) > epsilon || std::fabs(quat[2]) > epsilon) {
-      qc::fp alpha_2 = -1 * std::atan2(quat[1], quat[2]);
+      qc::fp alpha_2 = -1 * std::atan2(quat[1], quat[2]); //(phi-lambda)/2
       phi = alpha_1 + alpha_2; // phi
       lambda = alpha_1 - alpha_2;
     } else {
@@ -313,6 +313,9 @@ auto NativeGateDecomposer::shortest_path_to_start(
     -> std::pair<std::vector<std::size_t>, double> {
   std::vector<std::pair<std::vector<std::size_t>, double>> possible_paths = {};
   // Check if leaf nodes are reached
+
+  // TODO: Check if Path cost takes into account edge weight from current node
+  // to next node!!!
   for (auto edge : subproblem_graph.get_adjacent(current_node)) {
     if (leaf_nodes.contains(edge.first)) {
       possible_paths.push_back({std::pair<std::vector<std::size_t>, double>(
@@ -545,7 +548,6 @@ auto NativeGateDecomposer::max_theta(
   }
   return max_cost;
 }
-// TODO: This only ever gives the first Moment?????
 auto NativeGateDecomposer::sift(
     DiGraph<std::variant<StructU3, std::array<qc::Qubit, 2>>>& circuit,
     std::vector<std::size_t> v, size_t nQubits)
@@ -557,22 +559,18 @@ auto NativeGateDecomposer::sift(
   std::set<std::size_t> v_rem = std::set(v.begin(), v.end());
   std::set<size_t> removed = std::set<size_t>();
 
+  // We traverse the graph rather than v_rem to use the graph's topological
+  // ordering
   for (auto node = 0; node < circuit.size(); node++) {
-    if (v_rem.contains(node)) { // TODO: SORT V_rem??? Needs to be a topological
+    if (v_rem.contains(node)) {
       auto op = circuit.get_Node_Value(node);
-
       std::set<size_t> op_qubits = std::set<size_t>();
 
-      std::set<size_t> used_qubits;
       if (std::holds_alternative<StructU3>(op)) {
-        used_qubits = {std::get<StructU3>(op).qubit};
+        op_qubits = {std::get<StructU3>(op).qubit};
       } else {
-        used_qubits = {std::get<std::array<qc::Qubit, 2>>(op)[0],
-                       std::get<std::array<qc::Qubit, 2>>(op)[1]};
-      }
-
-      for (auto qubit : used_qubits) {
-        op_qubits.insert(qubit);
+        op_qubits = {std::get<std::array<qc::Qubit, 2>>(op)[0],
+                     std::get<std::array<qc::Qubit, 2>>(op)[1]};
       }
       if (removed.size() < nQubits && disjunct(removed, op_qubits)) {
         if (std::holds_alternative<StructU3>(op)) {
@@ -580,8 +578,6 @@ auto NativeGateDecomposer::sift(
           removed.insert(std::get<StructU3>(op).qubit);
         } else {
           v_p.push_back(node);
-          // Add something to make it only pick one 2-Qubit gate per Qubit per
-          // moment???
         }
       } else {
         v_r.push_back(node);
@@ -676,7 +672,6 @@ auto NativeGateDecomposer::schedule_remaining(
   // TODO: Check if subproblem has been computed
   std::size_t id = std::hash<std::array<std::vector<size_t>, 3>>{}(v);
   if (memo.contains(id)) {
-    // Wrong memory Call!!!
     std::size_t sub_node = memo.at(id).first;
     double edge_weight = memo.at(id).second[1];
     cost = memo.at(id).second[0];
@@ -708,7 +703,6 @@ auto NativeGateDecomposer::schedule_remaining(
   for (const auto& val : args) {
     auto new_node = add_node_to_sub_prob_graph(v[0], val.first[0], val.second,
                                                subproblem_graph, prev_node);
-    // USdingg v_new is incorrect!! need adjusted one for arg
     temp_cost = schedule_remaining({val.first[1], val.first[2], val.first[3]},
                                    circuit, subproblem_graph, new_node, nQubits, check_final_cond, memo) + val.second;
     if (temp_cost < min_cost) {
@@ -747,8 +741,8 @@ auto NativeGateDecomposer::schedule_theta_opt(
       std::pair<std::vector<std::size_t>, std::vector<std::size_t>>({}, {}));
   std::map<std::size_t, std::pair<std::size_t, std::array<double, 2>>> memo =
       {};
-  auto cost = schedule_remaining(v, circuit, sub_prob_graph, base_node,
-                                 nQubits_, config_.check_final_cond, memo);
+  auto cost = schedule_remaining(v, circuit, sub_prob_graph, base_node, nQubits,
+                                 config_.check_final_cond, memo);
   // TODO: Create Schedule from Subproblem Graph
   std::pair<std::vector<std::vector<StructU3>>, std::vector<TwoQubitGateLayer>>
       final_circuit = build_schedule(circuit, sub_prob_graph);
